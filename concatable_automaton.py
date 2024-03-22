@@ -116,9 +116,23 @@ class ConcatableAutomaton(Automaton):
 
         return ApproxMachine
 
+
+    def next_letters(self, state: FSMState)->set:
+        '''
+        Generate the collection of letters that label the transitions exiting a particular state.
+        Note that transitions that do not lead to final states are included, as are transitions to fail states (i.e. those from which it is impossible to reach a final state)
+
+        :param state: an FSMState of self.
+        :return: the set of letters that can be written after the given state.
+        '''
+
+        if not self.has_state(state):
+            raise ValueError('The state', state.label(), 'is not in this machine.')
+
+        #Recall that transition.word_in returns a singleton list
+        return {transition.word_in[0] for transition in self.iter_transitions(state)}
 """
-    Commented out for now. It appears to be correct, but it was giving an unhashable type error, which suggests that some transitions are not labeled as intended.
-    
+     
     def transition_dict(self, state:FSMState) -> dict:
         '''
         Generate a dictionary describing the FSMTransitions of self that start at the provided state.

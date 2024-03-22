@@ -2,6 +2,8 @@ from _collections_abc import Sequence, Iterable
 from abc import ABC
 from sage.combinat.finite_state_machine import FiniteStateMachine, FSMState, FSMTransition, Automaton
 from sage.combinat.subset import powerset
+from sage.graphs.graph import Graph
+from sage.graphs.cliquer import clique_number
 import matplotlib
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -13,7 +15,7 @@ from rips_fsm_generator import Rips_FSM_Generator
 from divergence_fsm_generator import Divergence_FSM_Generator
 
 class DivergenceHorosphereGenerator:
-    def __init__(self, commutation_dict: dict[str, set], order_dict: dict[str, int], ray: list[str]):
+    def __init__(self, commutation_dict: dict[str, set], order_dict: dict[str, int], ray: tuple[str]):
         self.c_map = commutation_dict
         self.o_map = order_dict
         self.alphabet = set().union(letter for letter in self.o_map)
@@ -26,11 +28,11 @@ class DivergenceHorosphereGenerator:
         self.geodesic_suffix_machine = self.fsm_gen.geodesic_suffix_machine()
         self.word_gen = WordGenerator(self.c_map, self.o_map)
 
-        #These dictionaries will keep track of which letters appear in which subwords of horocyclic suffixes. 
+        #These dictionaries will keep track of which letters appear in which subwords of horocyclic suffixes.
         self.SubwordDict1234 = {}
         self.SubwordDict1256 = {}
         self.SubwordDictDifferentLength = {}
-        #The letters that commute with and precede both ray letters appear first in w_1
+        #The letters that commute with both ray letters and precede the second one appear first in w_1
         for letter in self.c_map[self.ray[0]].intersection(self.fsm_gen.lesser_star[self.ray[1]]):
             self.SubwordDict1234[letter] = 1
             self.SubwordDict1256[letter] = 1
@@ -63,7 +65,15 @@ class DivergenceHorosphereGenerator:
         self.same_length_edge_checker1256 = self.fsm_gen.horocyclic_edge_checker(self.SubwordDict1256)
         self.different_length_edge_checker = self.fsm_gen.horocyclic_edge_checker(self.SubwordDictDifferentLength)
         
-        self.clique_dimension = self._determine_clique_dimension_recursive(0, self.alphabet)
+        #Create a version of self.fsm_gen.lesser_star that can serve as the defining object for the constructor of the Graph class.
+        GraphDict = copy.deepcopy(self.fsm_gen.lesser_star)
+        for letter in GraphDict.keys():
+            #Convert this into a dictionary of lists rather than sets.
+            GraphDict[letter] = list(GraphDict[letter])
+
+        self.clique_dimension = Graph(GraphDict, format = 'dict_of_lists').clique_number()
+        #self.clique_dimension = self._determine_clique_dimension_recursive(0, self.alphabet)
+        print('Clique Dimension is ', self.clique_dimension)
 
     def _determine_clique_dimension_recursive(self, running_total: int, allowable_set:set) -> int:
         '''
@@ -92,6 +102,9 @@ class DivergenceHorosphereGenerator:
         :return: A list of all horocyclic suffixes for the desired value of the Busemann Function of up to length n.
         '''
         
+        if n < 0:
+            raise ValueError('The length of desired words should be non-negative.')
+
         HorocyclicSuffixList = []
         #EvenList = []
         #OddList = []
@@ -120,12 +133,14 @@ class DivergenceHorosphereGenerator:
                 #If NextStateLabel[0] is 1, that means that the letter is not in w_1 or w_2. 
                 #In particular, the label is of the form (1, (( int, SubwordState), (LetterExcluderState) ) ) where int is 0 for the third subword or 1 for the fourth.
                 SubwordList = [[], [], [], []]
-                SubwordList[2+NextStateLabel[1][0].label()[0]] = [transition.word_in]
+                #recall that transition.word_in returns a singleton list.
+                SubwordList[2+NextStateLabel[1][0].label()[0]] = [transition.word_in[0]]
             else:
                 #If NextStateLabel[0] is 0, that means that the letter is in w_1 or w_2.
                 #In particular, the label is of the form (0, (int, SubwordState)) where int is 0 for the first subword or 1 for the second.
                 SubwordList = [[], [], [], []]
-                SubwordList[NextStateLabel[1][0]] = [transition.word_in]
+                #recall that transition.word_in returns a singleton list.
+                SubwordList[NextStateLabel[1][0]] = [transition.word_in[0]]
             NewWord = self.word_gen.horocyclic_word(SubwordList, not mode)
             HorocyclicSuffixList.append(NewWord)
             #OddList.append(ResultingWord)
@@ -143,15 +158,15 @@ class DivergenceHorosphereGenerator:
 
                         #Append the first letter to the relevant subword
                         if FirstTransition.to_state.label()[0]:
-                            NewWord.append(FirstTransition.word_in, 2+FirstTransition.to_state.label()[1][0].label()[0])
+                            NewWord.append(FirstTransition.word_in[0], 2+FirstTransition.to_state.label()[1][0].label()[0])
                         else:
-                            NewWord.append(FirstTransition.word_in, FirstTransition.to_state.label()[1][0])
+                            NewWord.append(FirstTransition.word_in[0], FirstTransition.to_state.label()[1][0])
                             
                         #Append the second letter to the relevant subword.
                         if SecondTransition.to_state.label()[0]:
-                            NewWord.append(SecondTransition.word_in, 2+SecondTransition.to_state.label()[1][0].label()[0])
+                            NewWord.append(SecondTransition.word_in[0], 2+SecondTransition.to_state.label()[1][0].label()[0])
                         else:
-                            NewWord.append(SecondTransition.word_in, SecondTransition.to_state.label()[1][0])
+                            NewWord.append(SecondTransition.word_in[0], SecondTransition.to_state.label()[1][0])
                             
                         HorocyclicSuffixList.append(NewWord)
                         Frontier.append((SecondTransition.to_state, depth+2, NewWord))
@@ -163,15 +178,15 @@ class DivergenceHorosphereGenerator:
 
                         #Append the first letter to the relevant subword
                         if FirstTransition.to_state.label()[0]:
-                            NewWord.append(FirstTransition.word_in, 2+FirstTransition.to_state.label()[1][0].label()[0])
+                            NewWord.append(FirstTransition.word_in[0], 2+FirstTransition.to_state.label()[1][0].label()[0])
                         else:
-                            NewWord.append(FirstTransition.word_in, FirstTransition.to_state.label()[1][0])
+                            NewWord.append(FirstTransition.word_in[0], FirstTransition.to_state.label()[1][0])
                             
                         #Append the second letter to the relevant subword.
                         if SecondTransition.to_state.label()[0]:
-                            NewWord.append(SecondTransition.word_in, 2+SecondTransition.to_state.label()[1][0].label()[0])
+                            NewWord.append(SecondTransition.word_in[0], 2+SecondTransition.to_state.label()[1][0].label()[0])
                         else:
-                            NewWord.append(SecondTransition.word_in, SecondTransition.to_state.label()[1][0])
+                            NewWord.append(SecondTransition.word_in[0], SecondTransition.to_state.label()[1][0])
                             
                         HorocyclicSuffixList.append(NewWord)
                         Frontier.append((SecondTransition.to_state, depth+2, NewWord))
@@ -195,11 +210,14 @@ class DivergenceHorosphereGenerator:
         
         Adjacencies = []
 
+        print('finding same length adjacencies for the word', HorocyclicSuffix.SubwordList)
+
         #We construct the list of horocyclic suffixes of the same length and at distance at most self.clique_dimension away.
         #We begin by deleting letters from HorocyclicSuffix
 
         #Edge case: HorocyclicSuffix is short enough that it backtracks all the way to the identity.
-        if len(HorocyclicSuffix) <self.clique_dimension:
+        if len(HorocyclicSuffix) <= self.clique_dimension:
+            print('This word backtracks all the way to the identity')
             BacktrackedWords = [self.word_gen.horocyclic_word([[],[],[],[]], HorocyclicSuffix.mode)]
         else:
             BacktrackedWords = self._backtracking_recursive(HorocyclicSuffix, self.clique_dimension, self.shortlex_machine.initial_states()[0])
@@ -208,6 +226,7 @@ class DivergenceHorosphereGenerator:
         for word in BacktrackedWords:
             CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension), self.geodesic_suffix_machine.process(word.word_as_list)[1]))
 
+        print('The list of candidates is ', CandidateList)
         while len(CandidateList) > 0:
             CurrentCandidate = CandidateList.pop(0)
             if CurrentCandidate in FinishedWords:
@@ -216,10 +235,15 @@ class DivergenceHorosphereGenerator:
             #The edge checker machine wants an input tape that consists of pairs of characters.
             InputList = list(zip(HorocyclicSuffix.word_as_list+['-'], CurrentCandidate.word_as_list+['-']))
             
-            
+            print ('input pair ', HorocyclicSuffix.SubwordList, ' and ', CurrentCandidate.SubwordList)
+            print ('The zipped input is ', InputList)
             if HorocyclicSuffix.mode:
+                #These assertions work fine, but then we get an error saying that this state does not belong to a finite state machine.
+                #assert(self.same_length_edge_checker1234.has_state(( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (1, 1), True )))
                 InputAccepted, EndState = self.same_length_edge_checker1234.process(InputList)[:2]
             else:
+                #These assertions work fine, but then we get an error saying that this state does not belong to a finite state machine.
+                #assert(self.same_length_edge_checker1256.has_state(( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (1, 1), True )))
                 InputAccepted, EndState = self.same_length_edge_checker1256.process(InputList)[:2]
             if not InputAccepted:
                 FinishedWords.append(CurrentCandidate)
@@ -248,7 +272,7 @@ class DivergenceHorosphereGenerator:
             LettersCommutingWithClique = set(EndState.label()[9])
             #Check whether any of these letters is permitted by both the above states.
 
-            print('Processing pair ', HorocyclicSuffix.word_as_list, CurrentCandidate.word_as_list)
+            print('Processing pair ', HorocyclicSuffix.SubwordList, CurrentCandidate.SubwordList)
             print('The elongated word is ', ElongatedWord, ' and the non-elongated word is ', NonElongatedWord)
             print('The state of the elongated word is ', ElongatedState.label())
             print('Its outgoing transitions are ', relevant_suffix_machine.transitions(ElongatedState))
@@ -270,25 +294,38 @@ class DivergenceHorosphereGenerator:
     def calculate_shorter_divergence_adjacencies(self, HorocyclicSuffix:HorocyclicWord) ->list:
         '''
         Given a horocyclic suffix, find all shorter horocyclic on the same horosphere such that there is an edge between the two in the divergence graph. 
-        
+        Usually, this method uses the various stored horocyclic_suffix_machine's. However, some care is required in the case that the extra prefix letters are cancelable.
+
         :param HorocyclicSuffix: A horocyclic suffix.
         :return: The list of all horocyclic suffixes of shorter than HorocyclicSuffix such that the two have close successors.
         '''
 
         Adjacencies = []
+
+        #If there are any other letters besides these, then between this suffix and any shorter suffix there will always be an uncancelable pair
+        AcceptableLetters = self.c_map[self.ray[1-int(HorocyclicSuffix.mode)]]
         
-        if HorocyclicSuffix[3] != []:
+        #edge case: HorocyclicSuffix is empty
+        if HorocyclicSuffix.word_as_list == []:
             return Adjacencies
 
-        for letter in HorocyclicSuffix[4]:
-            if not letter in self.c_map[self.ray[1-int(HorocyclicSuffix.mode)]]:
+        if HorocyclicSuffix[2] != []:
+            return Adjacencies
+
+        for letter in HorocyclicSuffix[3]:
+            if not letter in AcceptableLetters:
                 return Adjacencies
+            
+        print('Finding shorter divergence adjacencies for ', HorocyclicSuffix.SubwordList)
         
         BacktrackedWords = []
         CandidateList = []
         FinishedWords = []
 
-        #This list will keep track of the letters to add to the shorter word
+        #This list will keep track of the letters to add to the shorter word. 
+        #The horocyclic suffix mode tells us the last letter of the prefix associated to HorocyclicSuffix. It is self.ray[0] if HorocyclicSuffix.mode is False, or self.ray[1] if HorocyclicSuffix.mode is True.
+        #Therefore, the 0th letter of the shorter word is self.ray[1] if HorocyclicSuffix.mode is False, or self.ray[0] if HorocyclicSuffix.mode is True.
+        #Further extra letters alternate thereafter.
         ExtensionList = []
         for length in range(0, self.clique_dimension):
             if HorocyclicSuffix.mode ^ length%2:
@@ -296,9 +333,10 @@ class DivergenceHorosphereGenerator:
             else:
                 ExtensionList.append(self.ray[1])
         
-        if HorocyclicSuffix[4] == []:
+        if HorocyclicSuffix[3] == []:
             #If so, then every letter of HorocyclicSuffix commutes with both self.ray[0] and self.ray[1], so that they all commute with one another.
             #Therefore, these words backtrack all the way to the identity.
+            print('This word has no third or fourth subword')
             CandidateList = self.get_all_length_n_horocyclic_suffixes(len(HorocyclicSuffix)-1, not (HorocyclicSuffix.mode ^ (len(HorocyclicSuffix)%2)))
 
         else:
@@ -310,18 +348,30 @@ class DivergenceHorosphereGenerator:
                 BacktrackedWords = self._backtracking_recursive(StartingWord, self.clique_dimension, self.shortlex_machine.initial_states()[0])
                                 
             for word in BacktrackedWords:
-                CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension)), self.geodesic_suffix_machine.process(word.word_as_list)[1])
+                BacktrackedState = self.geodesic_suffix_machine.process(word.word_as_list)[1]
+                print('The backtracked word is ', word.SubwordList, ', and its state in the geodesic suffix machine is ', BacktrackedState.label())
+                CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension)-1, BacktrackedState))
             
+        print('The candidate list is', CandidateList)
+
         while CandidateList:
             CurrentCandidate = CandidateList.pop(0)
             if CurrentCandidate in FinishedWords:
                 continue
 
+            #Issue: Because of the value of SubwordDictUnequalLength evaluated at ray letters, this does not always produce a correct output
+            #Workaround: calculate directly the desired output in the case where the length differs by more than 1.
+            #If the length differs by 1, bifurcate based on whether the extra prefix letter can be canceled.
+
             CandidateInput = CurrentCandidate[0] + CurrentCandidate[1] + CurrentCandidate[2] + ExtensionList[0:len(HorocyclicSuffix)-len(CurrentCandidate):] + CurrentCandidate[3]
             InputList = list(zip(HorocyclicSuffix.word_as_list+['-'], CandidateInput+['-']))
 
-            EndState = self.different_length_edge_checker.process(InputList)
-            if not EndState[0]:
+            (InputAccepted, EndState) = self.different_length_edge_checker.process(InputList)
+
+            if InputAccepted and EndState is None:
+                raise RuntimeError('The pair ', HorocyclicSuffix, ' and ', CandidateInput, 'yields an unprocessable accepted input')
+
+            if not InputAccepted:
                 FinishedWords.append(CurrentCandidate)
                 continue
 
@@ -329,49 +379,63 @@ class DivergenceHorosphereGenerator:
             #To check whether the two have close successors, we need to check whether there is an infinite alternation of some pair of letters as described in Proposition 5.2.10
 
             CancelingWord = EndState.label()[4]
+
+            #The CancelingWord will be written after either HorocyclicSuffix or CandidateWord, depending on which word the cancelable letters belong to.
+            #However, some of the letters of the CancelingWord may have been prefix letters, and if so, writing them does not change the suffix.
+            #Since we are keeping track of edges between suffixes, we must first process CancelingWord slightly.
+            #Recall that if the final state has True in index 11, it means that the second input contains cancelable letters, including perhaps a prefix letter.
+            #Note that the uncanceled letters between subwords 1 and 2 will always be uncancelable no matter what. So if prefix letters can be canceled, they must appear at the beginning of the cancelable word.
+
+            if EndState.label()[11]:
+                if HorocyclicSuffix[3] == 0:
+                    #In this case, every extra prefix letter will appear in the cancelable set, but we want to drop all of them.
+                    CancelingWord = CancelingWord[len(HorocyclicSuffix)-len(CurrentCandidate)::]
+                elif ExtensionList[0] in self.alphabet.intersection(*[self.fsm_gen.lesser_star[letter] for letter in HorocyclicSuffix[3]]):
+                    #In this case, there is 1 extra prefix letter.
+                    CancelingWord = CancelingWord[1::]
+                    
+                #Otherwise, the extra prefix letter is in the uncancelable set, so there is no need to worry about it.
+
+
              
             if HorocyclicSuffix.mode:
                 if EndState.label()[11]:
+                    # print ('input pair ', HorocyclicSuffix, ' and ', CandidateInput, ' with canceling word ', CancelingWord)
                     HorocyclicState = self.horocyclic_suffix_machine_1234.process(HorocyclicSuffix.word_as_list + list(CancelingWord))[1]
-                    HorocyclicTransitionDict = self.horocyclic_suffix_machine_1234.transition_dict(HorocyclicState)
+                    HorocyclicNextLetters = self.horocyclic_suffix_machine_1234.next_letters(HorocyclicState)
                 else:
                     HorocyclicState = self.horocyclic_suffix_machine_1234.process(HorocyclicSuffix.word_as_list)[1]
-                    HorocyclicTransitionDict = self.horocyclic_suffix_machine_1234.transition_dict(HorocyclicState)
+                    HorocyclicNextLetters = self.horocyclic_suffix_machine_1234.next_letters(HorocyclicState)
             else:
                 if EndState.label()[11]:
                     HorocyclicState = self.horocyclic_suffix_machine_1256.process(HorocyclicSuffix.word_as_list + list(CancelingWord))[1]
-                    HorocyclicTransitionDict = self.horocyclic_suffix_machine_1256.transition_dict(HorocyclicState)
+                    HorocyclicNextLetters = self.horocyclic_suffix_machine_1256.next_letters(HorocyclicState)
                 else:
                     HorocyclicState = self.horocyclic_suffix_machine_1256.process(HorocyclicSuffix.word_as_list)[1]
-                    HorocyclicTransitionDict = self.horocyclic_suffix_machine_1256.transition_dict(HorocyclicState)
+                    HorocyclicNextLetters = self.horocyclic_suffix_machine_1256.next_letters(HorocyclicState)
 
             if CurrentCandidate.mode:
                 if EndState.label()[11]:
                     CandidateState = self.horocyclic_suffix_machine_1234.process(CurrentCandidate.word_as_list)[1]
-                    CandidateTransitionDict = self.horocyclic_suffix_machine_1234.transition_dict(CandidateState)
+                    CandidateNextLetters = self.horocyclic_suffix_machine_1234.next_letters(CandidateState)
                 else:
                     CandidateState = self.horocyclic_suffix_machine_1234.process(CurrentCandidate.word_as_list+ list(CancelingWord))[1]
-                    CandidateTransitionDict = self.horocyclic_suffix_machine_1234.transition_dict(CandidateState)
+                    CandidateNextLetters = self.horocyclic_suffix_machine_1234.next_letters(CandidateState)
             else:
                 if EndState.label()[11]:
                     CandidateState = self.horocyclic_suffix_machine_1256.process(CurrentCandidate.word_as_list)[1]
-                    CandidateTransitionDict = self.horocyclic_suffix_machine_1256.transition_dict(CandidateState)
+                    CandidateNextLetters = self.horocyclic_suffix_machine_1256.next_letters(CandidateState)
                 else:
                     CandidateState = self.horocyclic_suffix_machine_1256.process(CurrentCandidate.word_as_list+ list(CancelingWord))[1]
-                    CandidateTransitionDict = self.horocyclic_suffix_machine_1256.transition_dict(CandidateState)
+                    CandidateNextLetters = self.horocyclic_suffix_machine_1256.next_letters(CandidateState)
 
             LettersCommutingWithClique = set(EndState.label()[9])
             #Check whether any of these letters is permitted by both the above states.
         
             for letter in LettersCommutingWithClique:
-                #Check if this letter can be written after both words
-                try:
-                    HorocyclicTransitionDict[letter]
-                    CandidateTransitionDict[letter]
-                except KeyError:
-                    continue
+
                 #Check if there is another letter in the alphabet which does not commute with the given letter
-                if LettersCommutingWithClique.difference(self.c_map[letter].union({letter})) != set():
+                if letter in HorocyclicNextLetters.intersection(CandidateNextLetters) and LettersCommutingWithClique.difference(self.c_map[letter].union({letter})) != set():
                     Adjacencies.append(CurrentCandidate)
                     break
             FinishedWords.append(CurrentCandidate)
@@ -389,7 +453,7 @@ class DivergenceHorosphereGenerator:
         adjacencies = []
         
         adjacencies.extend(self.calculate_same_length_divergence_adjacencies(HorocyclicSuffix))
-        adjacencies.extend(self.calculate_different_length_rips_adjacencies(HorocyclicSuffix))
+        adjacencies.extend(self.calculate_shorter_divergence_adjacencies(HorocyclicSuffix))
         
         return adjacencies
 
@@ -437,12 +501,13 @@ class DivergenceHorosphereGenerator:
         #We backtrack by the letters that are both final letters of word and still allowed by the shortlex state.
         LastLetters = set(self.geodesic_machine.process(word.word_as_list)[1].label())
         for transition in self.shortlex_machine.transitions(ShortlexState):
-            if transition.word_in in LastLetters:
+            #Recall that transition.word_in outputs a list containing the label of the transition, not the label itself. 
+            if transition.word_in[0] in LastLetters:
                 for i in reversed(range(0,4)):
-                    if transition.word_in in set(word[i]):
-                        NewSubwordList = word.SubwordList
-                        ReversedSubword = word.SubwordList[i][::-1]
-                        DeletedSubword = (ReversedSubword[0:ReversedSubword.index(transition.word_in):]+ReversedSubword[ReversedSubword.index(transition.word_in)+1::])[::-1]
+                    if transition.word_in[0] in set(word[i]):
+                        NewSubwordList = copy.deepcopy(word.SubwordList)
+                        ReversedSubword = copy.deepcopy(word.SubwordList[i])[::-1]
+                        DeletedSubword = (ReversedSubword[0:ReversedSubword.index(transition.word_in[0]):]+ReversedSubword[ReversedSubword.index(transition.word_in)+1::])[::-1]
                         NewSubwordList[i] = DeletedSubword
                         NewWord = self.word_gen.horocyclic_word(NewSubwordList, word.mode)
                         break
@@ -461,22 +526,26 @@ class DivergenceHorosphereGenerator:
         
         if StepCount == 0:
             return [word]
-
+        
+        if StepCount < 0:
+            raise ValueError('Cannot go a negative number of steps forward. Use the _backtracking_recursive function to go backwards.')
+        
         ResultingWords = []  
         
         for transition in self.geodesic_suffix_machine.transitions(GeodesicSuffixState):
-            #determine which subword transition.word_in should be inserted into.
+            #determine which subword transition.word_in should be inserted into. Recall that transition.word_in is a singleton list
             if word.mode:
-                EarliestPossibleSubword = self.SubwordDictionary1234[transition.word_in]
+                EarliestPossibleSubword = self.SubwordDict1234[transition.word_in[0]]
             else:
-                EarliestPossibleSubword = self.SubwordDictionary1256[transition.word_in]
+                EarliestPossibleSubword = self.SubwordDict1256[transition.word_in[0]]
             
             for i in reversed(range(EarliestPossibleSubword-1,4)):
                 #transition.word_in belongs in subword i either if it cannot commute to an earlier subword, or if subword i is the earliest subword the letter is allowed in.
-                if i == EarliestPossibleSubword-1 or (not self.fsm_gen.test_set_pair_commutation({transition.word_in},set(word[i]))):
-                    NewSubwordList = word.SubwordList
+                if i == EarliestPossibleSubword-1 or (not self.fsm_gen._test_set_pair_commutation({transition.word_in[0]},set(word[i]))):
+                    NewSubwordList = copy.deepcopy(word.SubwordList)
                     NewSubword = self.word_gen.word(word[i])
-                    NewSubword.shortlex_append(transition.word_in)
+                    #Recall that transition.word_in is a singleton list.
+                    NewSubword.shortlex_append(transition.word_in[0])
                     NewSubwordList[i] = NewSubword.word_as_list
                     NewWord = self.word_gen.horocyclic_word(NewSubwordList, word.mode)
                     break
@@ -509,7 +578,7 @@ class DivergenceHorosphereGenerator:
         #sentinel value
         SplitIndex = None
         
-        for index in  range(0, len(word[4])):
+        for index in  range(0, len(word[3])):
             if not word[4][index] in self.c_map[SplitLetter]:
                 raise ValueError('Not implemented in the general case')
             if self.o_map[word[4][index]] > self.o_map[SplitLetter] and SplitIndex is None:
@@ -518,8 +587,8 @@ class DivergenceHorosphereGenerator:
         #At the end of either loop, SplitIndex records either the first instance of a letter commuting with and following SplitLetter
         #Or, if each letter commutes with and precedes SplitLetter, then SplitIndex still has the sentinel value None.
         if SplitIndex is None:
-            NewWord = self.word_gen.horocyclic_word([word[1], word[2], word[4], []], not word.mode)
+            NewWord = self.word_gen.horocyclic_word([word[0], word[1], word[3], []], not word.mode)
         else:
-            NewWord = self.word_gen.horocyclic_word([word[1], word[2], word[4][:SplitIndex:], word[4][SplitIndex::]], not word.mode)
+            NewWord = self.word_gen.horocyclic_word([word[0], word[1], word[3][:SplitIndex:], word[3][SplitIndex::]], not word.mode)
     
         return NewWord

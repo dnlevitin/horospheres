@@ -11,7 +11,7 @@ import copy
 from concatable_automaton import ConcatableAutomaton
 
 class Rips_FSM_Generator:
-    def __init__(self, commutation_dict:dict[str, set], order_dict: dict[str, int], ray: list[str]):
+    def __init__(self, commutation_dict:dict[str, set], order_dict: dict[str, int], ray: tuple[str]):
         
         '''
         This object will make the necessary automata for the Rips graph on a horosphere.

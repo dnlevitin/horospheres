@@ -12,7 +12,7 @@ from concatable_automaton import ConcatableAutomaton
 from rips_fsm_generator import Rips_FSM_Generator
 
 class RipsHorosphereGenerator:
-    def __init__(self, commutation_dict: dict[str, set], order_dict: dict[str, int], ray: list[str]):
+    def __init__(self, commutation_dict: dict[str, set], order_dict: dict[str, int], ray: tuple[str]):
         self.c_map = commutation_dict
         self.o_map = order_dict
         self.alphabet = set().union(letter for letter in self.o_map)

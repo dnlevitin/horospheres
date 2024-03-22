@@ -89,6 +89,10 @@ class HorocyclicWord(Sequence):
         '''
         if len(subword_list) != 4:
             raise ValueError ('Please specify exactly 4 (possibly empty) subwords')
+        
+        for subword in subword_list:
+            if type(subword) != list:
+                raise ValueError('subwords should be formatted as lists of strings.')
 
         self.c_map = commutation_dict
         self.o_map = order_dict
@@ -123,7 +127,7 @@ class HorocyclicWord(Sequence):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return('HorocyclicWord(' + self.SubwordList +')')
+        return('HorocyclicWord(' + str(self.SubwordList) +')')
     
     def copy(self):
         copy_subword_list = [list(letter for letter in self.SubwordList[0]), list(letter for letter in self.SubwordList[1]), list(letter for letter in self.SubwordList[2]), list(letter for letter in self.SubwordList[3])]

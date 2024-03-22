@@ -12,7 +12,7 @@ from rips_fsm_generator import Rips_FSM_Generator
 from words import WordGenerator
 
 class Divergence_FSM_Generator(Rips_FSM_Generator):
-    def __init__(self, commutation_dict:dict[str, set], order_dict: dict[str, int], ray: list[str]):
+    def __init__(self, commutation_dict:dict[str, set], order_dict: dict[str, int], ray: tuple[str]):
         
         '''
         This object will make the necessary automata for computing the Divergence Graph. 
