@@ -224,7 +224,7 @@ class DivergenceHorosphereGenerator:
 
         #We can follow this word by any geodesic word, as long as the result is still a suffix. This will be be potentially highly non-unique, but it is not obvious how to avoid repetition
         for word in BacktrackedWords:
-            CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension), self.geodesic_suffix_machine.process(word.word_as_list)[1]))
+            CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension), self.geodesic_suffix_machine.process(word.word_as_list, check_epsilon_transitions = False)[1]))
 
         print('The list of candidates is ', CandidateList)
         while len(CandidateList) > 0:
@@ -240,11 +240,11 @@ class DivergenceHorosphereGenerator:
             if HorocyclicSuffix.mode:
                 #These assertions work fine, but then we get an error saying that this state does not belong to a finite state machine.
                 #assert(self.same_length_edge_checker1234.has_state(( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (1, 1), True )))
-                InputAccepted, EndState = self.same_length_edge_checker1234.process(InputList)[:2]
+                InputAccepted, EndState = self.same_length_edge_checker1234.process(InputList, check_epsilon_transitions = False)[:2]
             else:
                 #These assertions work fine, but then we get an error saying that this state does not belong to a finite state machine.
                 #assert(self.same_length_edge_checker1256.has_state(( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (1, 1), True )))
-                InputAccepted, EndState = self.same_length_edge_checker1256.process(InputList)[:2]
+                InputAccepted, EndState = self.same_length_edge_checker1256.process(InputList, check_epsilon_transitions = False)[:2]
             if not InputAccepted:
                 FinishedWords.append(CurrentCandidate)
                 continue
@@ -266,8 +266,8 @@ class DivergenceHorosphereGenerator:
                 relevant_suffix_machine = self.horocyclic_suffix_machine_1234
             else:
                 relevant_suffix_machine = self.horocyclic_suffix_machine_1256
-            ElongatedState = relevant_suffix_machine.process(ElongatedWord)[1]
-            NonElongatedState = relevant_suffix_machine.process(NonElongatedWord)[1]
+            ElongatedState = relevant_suffix_machine.process(ElongatedWord, check_epsilon_transitions = False)[1]
+            NonElongatedState = relevant_suffix_machine.process(NonElongatedWord, check_epsilon_transitions = False)[1]
             
             LettersCommutingWithClique = set(EndState.label()[9])
             #Check whether any of these letters is permitted by both the above states.
@@ -348,7 +348,7 @@ class DivergenceHorosphereGenerator:
                 BacktrackedWords = self._backtracking_recursive(StartingWord, self.clique_dimension, self.shortlex_machine.initial_states()[0])
                                 
             for word in BacktrackedWords:
-                BacktrackedState = self.geodesic_suffix_machine.process(word.word_as_list)[1]
+                BacktrackedState = self.geodesic_suffix_machine.process(word.word_as_list, check_epsilon_transitions = False)[1]
                 print('The backtracked word is ', word.SubwordList, ', and its state in the geodesic suffix machine is ', BacktrackedState.label())
                 CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension)-1, BacktrackedState))
             
@@ -366,7 +366,7 @@ class DivergenceHorosphereGenerator:
             CandidateInput = CurrentCandidate[0] + CurrentCandidate[1] + CurrentCandidate[2] + ExtensionList[0:len(HorocyclicSuffix)-len(CurrentCandidate):] + CurrentCandidate[3]
             InputList = list(zip(HorocyclicSuffix.word_as_list+['-'], CandidateInput+['-']))
 
-            (InputAccepted, EndState) = self.different_length_edge_checker.process(InputList)
+            (InputAccepted, EndState) = self.different_length_edge_checker.process(InputList, check_epsilon_transitions = False)
 
             if InputAccepted and EndState is None:
                 raise RuntimeError('The pair ', HorocyclicSuffix, ' and ', CandidateInput, 'yields an unprocessable accepted input')
@@ -401,32 +401,32 @@ class DivergenceHorosphereGenerator:
             if HorocyclicSuffix.mode:
                 if EndState.label()[11]:
                     # print ('input pair ', HorocyclicSuffix, ' and ', CandidateInput, ' with canceling word ', CancelingWord)
-                    HorocyclicState = self.horocyclic_suffix_machine_1234.process(HorocyclicSuffix.word_as_list + list(CancelingWord))[1]
+                    HorocyclicState = self.horocyclic_suffix_machine_1234.process(HorocyclicSuffix.word_as_list + list(CancelingWord), check_epsilon_transitions = False)[1]
                     HorocyclicNextLetters = self.horocyclic_suffix_machine_1234.next_letters(HorocyclicState)
                 else:
-                    HorocyclicState = self.horocyclic_suffix_machine_1234.process(HorocyclicSuffix.word_as_list)[1]
+                    HorocyclicState = self.horocyclic_suffix_machine_1234.process(HorocyclicSuffix.word_as_list, check_epsilon_transitions = False)[1]
                     HorocyclicNextLetters = self.horocyclic_suffix_machine_1234.next_letters(HorocyclicState)
             else:
                 if EndState.label()[11]:
-                    HorocyclicState = self.horocyclic_suffix_machine_1256.process(HorocyclicSuffix.word_as_list + list(CancelingWord))[1]
+                    HorocyclicState = self.horocyclic_suffix_machine_1256.process(HorocyclicSuffix.word_as_list + list(CancelingWord), check_epsilon_transitions = False)[1]
                     HorocyclicNextLetters = self.horocyclic_suffix_machine_1256.next_letters(HorocyclicState)
                 else:
-                    HorocyclicState = self.horocyclic_suffix_machine_1256.process(HorocyclicSuffix.word_as_list)[1]
+                    HorocyclicState = self.horocyclic_suffix_machine_1256.process(HorocyclicSuffix.word_as_list, check_epsilon_transitions = False)[1]
                     HorocyclicNextLetters = self.horocyclic_suffix_machine_1256.next_letters(HorocyclicState)
 
             if CurrentCandidate.mode:
                 if EndState.label()[11]:
-                    CandidateState = self.horocyclic_suffix_machine_1234.process(CurrentCandidate.word_as_list)[1]
+                    CandidateState = self.horocyclic_suffix_machine_1234.process(CurrentCandidate.word_as_list, check_epsilon_transitions = False)[1]
                     CandidateNextLetters = self.horocyclic_suffix_machine_1234.next_letters(CandidateState)
                 else:
-                    CandidateState = self.horocyclic_suffix_machine_1234.process(CurrentCandidate.word_as_list+ list(CancelingWord))[1]
+                    CandidateState = self.horocyclic_suffix_machine_1234.process(CurrentCandidate.word_as_list+ list(CancelingWord), check_epsilon_transitions = False)[1]
                     CandidateNextLetters = self.horocyclic_suffix_machine_1234.next_letters(CandidateState)
             else:
                 if EndState.label()[11]:
-                    CandidateState = self.horocyclic_suffix_machine_1256.process(CurrentCandidate.word_as_list)[1]
+                    CandidateState = self.horocyclic_suffix_machine_1256.process(CurrentCandidate.word_as_list, check_epsilon_transitions = False)[1]
                     CandidateNextLetters = self.horocyclic_suffix_machine_1256.next_letters(CandidateState)
                 else:
-                    CandidateState = self.horocyclic_suffix_machine_1256.process(CurrentCandidate.word_as_list+ list(CancelingWord))[1]
+                    CandidateState = self.horocyclic_suffix_machine_1256.process(CurrentCandidate.word_as_list+ list(CancelingWord), check_epsilon_transitions = False)[1]
                     CandidateNextLetters = self.horocyclic_suffix_machine_1256.next_letters(CandidateState)
 
             LettersCommutingWithClique = set(EndState.label()[9])
@@ -499,7 +499,7 @@ class DivergenceHorosphereGenerator:
 
         ResultingWords = []
         #We backtrack by the letters that are both final letters of word and still allowed by the shortlex state.
-        LastLetters = set(self.geodesic_machine.process(word.word_as_list)[1].label())
+        LastLetters = set(self.geodesic_machine.process(word.word_as_list, check_epsilon_transitions = False)[1].label())
         for transition in self.shortlex_machine.transitions(ShortlexState):
             #Recall that transition.word_in outputs a list containing the label of the transition, not the label itself. 
             if transition.word_in[0] in LastLetters:
