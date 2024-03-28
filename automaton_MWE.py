@@ -187,7 +187,7 @@ class Automaton(SageObject):
             outgoing_transitions.add(FSMTransition(from_state, to_state, word_in))
         return outgoing_transitions
     
-    def product(self, other) -> Automaton:
+    def intersection(self, other) -> Automaton:
         if not isinstance(other, Automaton):
             raise TypeError ('Can only take the fiber product of two automata')
         

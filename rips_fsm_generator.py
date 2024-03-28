@@ -1,14 +1,11 @@
 from _collections_abc import Sequence, Iterable
 from abc import ABC
-from sage.combinat.finite_state_machine import FiniteStateMachine, FSMState, FSMTransition, Automaton
+from automaton_MWE import FSMState, FSMTransition, Automaton
 from sage.combinat.subset import powerset
-import matplotlib
-import networkx as nx
-import matplotlib.pyplot as plt
+import typing
 from itertools import product
 from words import Word, WordGenerator
 import copy
-from concatable_automaton import ConcatableAutomaton
 
 class Rips_FSM_Generator:
     def __init__(self, commutation_dict:dict[str, set], order_dict: dict[str, int], ray: tuple[str]):
@@ -39,6 +36,9 @@ class Rips_FSM_Generator:
             raise ValueError('''The character ',' is reserved for delimiting lists''')
         if '_' in StringOfAllLetters:
             raise ValueError(''' The character '_' is reserved for the word breaks in horocyclic suffices''')
+        for character in self.alphabet:
+            if not hasattr(character, typing.Hashable):
+                raise TypeError('all letter of the alphabet must be hashable')
         
         #the lesser_star dictionary agrees with the function Star_< in the paper. When passed a key of a letter, it returns the set of letters that commute with and precede the key. Note the strict inequality.
         self.lesser_star = {}
@@ -50,7 +50,7 @@ class Rips_FSM_Generator:
             self.greater_star[letter] = self.c_map[letter].difference(self.lesser_star[letter])
 
     
-    def __first_letter_excluder(self, excluded_letters:set) -> ConcatableAutomaton:
+    def __first_letter_excluder(self, excluded_letters:set) -> Automaton:
         '''
         Generate an FSM that prevents a chosen set of letters from reaching the beginning of the word without cancellation. The states in this machine represent which letters could still reach the beginning of the word.
         
@@ -61,41 +61,45 @@ class Rips_FSM_Generator:
         if excluded_letters == self.alphabet:
             print("It appears that every letter has been excluded. Returning an automaton that accepts only the empty string")
             SingleState = FSMState('origin', is_initial = True, is_final = True)
-            return ConcatableAutomaton({SingleState:[]})
+            return Automaton({SingleState}, set())
         sorted_excluded_letters = sorted(excluded_letters, key = lambda x: self.o_map[x])
-        TransitionList = []
+        state_set = set()
+        transition_set = set()
         Frontier = []
         StartStateName = tuple(sorted_excluded_letters)
         # StartStateName = ",".join(str(letter) for letter in sorted(excluded_letters, key = lambda x: self.o_map[x]))
         StartState = FSMState(StartStateName, is_initial = True, is_final = True)
+        state_set.add(StartState)
         for nextletter in self.alphabet.difference(excluded_letters):
             NextName = tuple(sorted(excluded_letters.intersection(self.c_map[nextletter]), key = lambda x: self.o_map[x]))
             NextState = FSMState(NextName, is_initial = (NextName == StartStateName), is_final = True)
-            TransitionList.append(FSMTransition(StartState, NextState, nextletter))
+            state_set.add(NextState)
+            transition_set.add(FSMTransition(StartState, NextState, nextletter))
             Frontier.append(NextState)
             
         #FinishedStates keeps track of which vertices we have already found all the edges for.
         
-        FinishedStates = [StartState]
-        while len(Frontier)>0:
+        FinishedStates = {StartState}
+        while Frontier:
             SourceState = Frontier.pop(0)
             if SourceState in FinishedStates:
                 continue
         
             SourceSet = set(SourceState.label())
-            FinishedStates.append(SourceState)
+            FinishedStates.add(SourceState)
             for nextletter in self.alphabet.difference(SourceSet):
                 NextName = tuple(sorted(SourceSet.intersection(self.c_map[nextletter]), key = lambda x: self.o_map[x]))
                 NextState = FSMState(NextName, is_initial = (NextName == StartStateName), is_final = True)
+                state_set.add(NextState)
                 Frontier.append(NextState)
-                TransitionList.append(FSMTransition(SourceState, NextState, nextletter))
+                transition_set.add(FSMTransition(SourceState, NextState, nextletter))
        
         #print('TransitionList is')
         #print(TransitionList)
-        return(ConcatableAutomaton(TransitionList))
+        return(Automaton(state_set, transition_set))
         
 
-    def odd_accepter_machine(self) -> ConcatableAutomaton:
+    def odd_accepter_machine(self) -> Automaton:
         '''
         This machine will accept words of odd length. Since words will be passed as lists of elements of the alphabet, the len function could do this.
         However, the tools in sage.combinat.finite_state_machine don't easily facilitate combining FSMs with functions.
@@ -105,13 +109,14 @@ class Rips_FSM_Generator:
 
         EvenState = FSMState('even', is_initial = True, is_final = False)
         OddState = FSMState('odd', is_initial = False, is_final = True)
-        TransitionList = []
+        state_set = {EvenState, OddState}
+        transition_set = set()
         for letter in self.alphabet:
-            TransitionList.append(FSMTransition(EvenState, OddState, letter))
-            TransitionList.append(FSMTransition(OddState, EvenState, letter))
-        return ConcatableAutomaton(TransitionList)
+            transition_set.add(FSMTransition(EvenState, OddState, letter))
+            transition_set.add(FSMTransition(OddState, EvenState, letter))
+        return Automaton(state_set, transition_set)
 
-    def even_accepter_machine(self) -> ConcatableAutomaton:
+    def even_accepter_machine(self) -> Automaton:
         '''
         This machine will accept words of even length. Since words will be passed as lists of elements of the alphabet, the len function could do this.
         However, the tools in sage.combinat.finite_state_machine don't easily facilitate combining FSMs with functions.
@@ -121,13 +126,14 @@ class Rips_FSM_Generator:
 
         EvenState = FSMState('even', is_initial = True, is_final = True)
         OddState = FSMState('odd', is_initial = False, is_final = False)
-        TransitionList = []
+        state_set = {EvenState, OddState}
+        transition_set = set()
         for letter in self.alphabet:
-            TransitionList.append(FSMTransition(EvenState, OddState, letter))
-            TransitionList.append(FSMTransition(OddState, EvenState, letter))
-        return ConcatableAutomaton(TransitionList)
+            transition_set.add(FSMTransition(EvenState, OddState, letter))
+            transition_set.add(FSMTransition(OddState, EvenState, letter))
+        return Automaton(state_set, transition_set)
         
-    def __shortlex_machine(self, restricted_alphabet = None) -> ConcatableAutomaton:
+    def __shortlex_machine(self, restricted_alphabet = None) -> Automaton:
         """
         Generate an FSM that prevents letters from being written that either cancel or should have already been written. 
         The states of this automaton represent the list of letters that a word cannot be followed by if it is to remain shortlex
@@ -143,12 +149,12 @@ class Rips_FSM_Generator:
         if restricted_alphabet == set():
             print("You have requested the shortlex machine on an empty alphabet. Returning an automaton that accepts only the empty string")
             SingleState = FSMState('origin', is_initial = True, is_final = True)
-            return ConcatableAutomaton({SingleState:[]})
+            return Automaton({SingleState}, set())
         
         StartState = FSMState((), is_initial = True, is_final = True)
-        TransitionList = []
+        state_set = {StartState}
+        transition_set = set()
         Frontier = []
-        States = [StartState]
 
         # Initialize the frontier with the legal next letters for single letter words 
         for nextletter in restricted_alphabet:
@@ -156,18 +162,20 @@ class Rips_FSM_Generator:
             # Set destination as the set of legal next letters for each letter
             NextName = tuple(sorted((self.lesser_star[nextletter].intersection(restricted_alphabet)).union({nextletter}), key = lambda x: self.o_map[x]))
             NextState = FSMState(NextName, is_initial = False, is_final = True)
-            TransitionList.append(FSMTransition(StartState, NextState, nextletter))
+            state_set.add(NextState)
+            transition_set.add(FSMTransition(StartState, NextState, nextletter))
             
             Frontier.append(NextState)
 
+        finished_states = {StartState}
+
         # Run BFS until we have finished the machine
-        while len(Frontier) > 0:
+        while Frontier:
             SourceState = Frontier.pop(0)
 
             # We have already considered source and all its outgoing edges, we can skip it
-            if SourceState in States:
+            if SourceState in finished_states:
                 continue
-            States.append(SourceState)
 
             # Record outgoing edges (i.e. possible next letters) from SourceState. This is guaranteed to be unique by above if-statement
             SourceSet = set(SourceState.label())
@@ -177,15 +185,17 @@ class Rips_FSM_Generator:
                 NextName = tuple(sorted(NextSet, key = lambda x: self.o_map[x]))
                 #We can never return to the original state, so the next state is always final and never initial.
                 NextState = FSMState(NextName, is_initial = False, is_final = True)
+                state_set.add(NextState)
                                 
                 # Add NextState to our frontier to ensure all vertices are reached
                 Frontier.append(NextState)
-                TransitionList.append(FSMTransition (SourceState, NextState, nextletter))
+                transition_set.add(FSMTransition (SourceState, NextState, nextletter))
                
+            finished_states.add(SourceState)
         #print(f"ShortLex Machine on alphabet {restricted_alphabet} Completed: Graph with \n\t\t{len(States)} Vertices and \n\t\t{len(TransitionList)} Edges.")
-        return (ConcatableAutomaton(TransitionList))
+        return (Automaton(state_set, transition_set))
     
-    def __geodesic_machine(self, restricted_alphabet = None)->ConcatableAutomaton:
+    def __geodesic_machine(self, restricted_alphabet = None)->Automaton:
         """
         Generate an FSM that prevents letters from being written that cancel . 
         The states of this automaton represent the list of letters that a word cannot be followed by if it is to remain geodesic
@@ -201,12 +211,12 @@ class Rips_FSM_Generator:
         if restricted_alphabet == set():
             print("You have requested the geodesic machine on an empty alphabet. Returning an automaton that accepts only the empty string")
             SingleState = FSMState('origin', is_initial = True, is_final = True)
-            return ConcatableAutomaton({SingleState:[]})
+            return Automaton({SingleState}, set())
         
         StartState = FSMState((), is_initial = True, is_final = True)
-        TransitionList = []
+        state_set = {StartState}
+        transition_set = set()
         Frontier = []
-        States = [StartState]
 
         # Initialize the frontier with the legal next letters for single letter words 
         for nextletter in restricted_alphabet:
@@ -214,18 +224,20 @@ class Rips_FSM_Generator:
             # Set destination as the set of legal next letters for each letter
             NextName = (nextletter)
             NextState = FSMState(NextName, is_initial = False, is_final = True)
-            TransitionList.append(FSMTransition(StartState, NextState, nextletter))
+            state_set.add(NextState)
+            transition_set.add(FSMTransition(StartState, NextState, nextletter))
             
             Frontier.append(NextState)
+        
+        finished_states = {StartState}
 
         # Run BFS until we have finished the machine
-        while len(Frontier) > 0:
+        while Frontier:
             SourceState = Frontier.pop(0)
 
             # We have already considered source and all its outgoing edges, we can skip it
-            if SourceState in States:
+            if SourceState in finished_states:
                 continue
-            States.append(SourceState)
 
             # Record outgoing edges (i.e. possible next letters) from SourceState. This is guaranteed to be unique by above if-statement
             SourceSet = set(SourceState.label())
@@ -235,16 +247,18 @@ class Rips_FSM_Generator:
                 NextName = tuple(sorted(NextSet, key = lambda x: self.o_map[x]))
                 #We can never return to the original state, so the next state is always final and never initial.
                 NextState = FSMState(NextName, is_initial = False, is_final = True)
-                                
+                state_set.add(NextState)
+
                 # Add NextState to our frontier to ensure all vertices are reached
                 Frontier.append(NextState)
-                TransitionList.append(FSMTransition (SourceState, NextState, nextletter))
+                transition_set.add(FSMTransition (SourceState, NextState, nextletter))
                
+            finished_states.add(SourceState)
         #print(f"Geodesic Machine on alphabet {restricted_alphabet} completed: Graph with \n\t\t{len(States)} Vertices and \n\t\t{len(TransitionList)} Edges.")
-        return (ConcatableAutomaton(TransitionList))
+        return (Automaton(state_set, transition_set))
     
-    def shortlex_suffix_machine(self) -> ConcatableAutomaton:
-        return self.__shortlex_machine().concatable_intersection(self.__first_letter_excluder(set(self.ray)))
+    def shortlex_suffix_machine(self) -> Automaton:
+        return self.__shortlex_machine().intersection(self.__first_letter_excluder(set(self.ray)))
 
-    def geodesic_suffix_machine(self) -> ConcatableAutomaton:
-        return self.__geodesic_machine().concatable_intersection(self.__first_letter_excluder(set(self.ray)))
+    def geodesic_suffix_machine(self) -> Automaton:
+        return self.__geodesic_machine().intersection(self.__first_letter_excluder(set(self.ray)))

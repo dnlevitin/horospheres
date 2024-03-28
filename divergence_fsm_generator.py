@@ -1,13 +1,12 @@
 from _collections_abc import Sequence, Iterable
 from abc import ABC
-from sage.combinat.finite_state_machine import FiniteStateMachine, FSMState, FSMTransition, Automaton
+from automaton_MWE import FSMState, FSMTransition, Automaton
 from sage.combinat.subset import powerset
 import matplotlib
 import networkx as nx
 import matplotlib.pyplot as plt
 from itertools import product
 import copy
-from concatable_automaton import ConcatableAutomaton
 from rips_fsm_generator import Rips_FSM_Generator
 from words import WordGenerator
 
@@ -52,20 +51,20 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         for letter in self.alphabet:
             self.greater_star[letter] = self.c_map[letter].difference(self.lesser_star[letter])
 
-    def horocyclic_suffix_machine_1(self) -> ConcatableAutomaton:
+    def horocyclic_suffix_machine_1(self) -> Automaton:
         #The w_1 machine accepts words spelled in the letters that commute with both letters of the ray and precede the second one (a_j in the paper)
         w1_machine = self._Rips_FSM_Generator__shortlex_machine(self.c_map[self.ray[0]].intersection(self.lesser_star[self.ray[1]]))
 
         return (w1_machine)
 
-    def horocyclic_suffix_machine_2(self) -> ConcatableAutomaton:
+    def horocyclic_suffix_machine_2(self) -> Automaton:
         #The w_2 machine accepts words spelled in the letters that commute with both letters of the ray, precede the first one (a_i in the paper), and follow the second one.
         w2_machine = self._Rips_FSM_Generator__shortlex_machine(self.lesser_star[self.ray[0]].intersection(self.greater_star[self.ray[1]]))
 
         return(w2_machine)
 
     
-    def horocyclic_suffix_machine_1234(self) -> ConcatableAutomaton:
+    def horocyclic_suffix_machine_1234(self) -> Automaton:
         '''
         Generate an FSM which accepts one of the two horocyclically shortlex word forms.
 
@@ -77,21 +76,21 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         # 2. w_4 cannot be made to begin with a_i, a_j, or a letter commuting with and preceding a_j
         # 3. w_3w_4, as a whole, cannot be rearranged to begin with a letter commuting with both letters and preceding a_i
 
-        w3_machine = self._Rips_FSM_Generator__shortlex_machine(self.lesser_star[self.ray[1]]).concatable_intersection(self._Rips_FSM_Generator__first_letter_excluder(self.c_map[self.ray[0]]))
+        w3_machine = self._Rips_FSM_Generator__shortlex_machine(self.lesser_star[self.ray[1]]).intersection(self._Rips_FSM_Generator__first_letter_excluder(self.c_map[self.ray[0]]))
 
         #This machine is so-named because its language is not exactly the words w_4, since in fact whether a word is allowed to be w_4 depends on w_3 by condition 3 above
-        w4_machine_approx = self._Rips_FSM_Generator__shortlex_machine().concatable_intersection(self._Rips_FSM_Generator__first_letter_excluder(self.lesser_star[self.ray[1]].union(set(self.ray))))
+        w4_machine_approx = self._Rips_FSM_Generator__shortlex_machine().intersection(self._Rips_FSM_Generator__first_letter_excluder(self.lesser_star[self.ray[1]].union(set(self.ray))))
         #If there are bugs, it's because of this machine, but I believe this machine is correct.
 
         w1_machine = self.horocyclic_suffix_machine_1()
         w2_machine = self.horocyclic_suffix_machine_2()
-        w12_machine = w1_machine.unambiguous_concatenation(w2_machine)
+        w12_machine = w1_machine.concatenation(w2_machine)
         
-        w3w4_machine = (w3_machine.unambiguous_concatenation(w4_machine_approx)).concatable_intersection(self._Rips_FSM_Generator__first_letter_excluder({self.ray[0]}.union(self.lesser_star[self.ray[0]].intersection(self.c_map[self.ray[1]]))))
+        w3w4_machine = (w3_machine.concatenation(w4_machine_approx)).intersection(self._Rips_FSM_Generator__first_letter_excluder({self.ray[0]}.union(self.lesser_star[self.ray[0]].intersection(self.c_map[self.ray[1]]))))
 
-        return w12_machine.unambiguous_concatenation(w3w4_machine)
+        return w12_machine.concatenation(w3w4_machine)
 
-    def horocyclic_suffix_machine_1256(self) -> ConcatableAutomaton:
+    def horocyclic_suffix_machine_1256(self) -> Automaton:
   
         '''
         Generate an FSM which accepts one of the two horocyclically shortlex word forms.
@@ -104,22 +103,25 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         # 2. w_6 cannot be made to begin with a_i, a_j, or a letter commuting with and preceding a_i
         # 3. w_5w_6, as a whole, cannot be rearranged to begin with a letter commuting with both a_i and a_j and preceding a_j
         
-        w5_machine = self._Rips_FSM_Generator__shortlex_machine(self.lesser_star[self.ray[0]]).concatable_intersection(self._Rips_FSM_Generator__first_letter_excluder(self.c_map[self.ray[1]]))
+        w5_machine = self._Rips_FSM_Generator__shortlex_machine(self.lesser_star[self.ray[0]]).intersection(self._Rips_FSM_Generator__first_letter_excluder(self.c_map[self.ray[1]]))
 
         #This machine is so-named because its language is not exactly the words w_6, since in fact whether a word is allowed to be w_6 depends on w_5 by condition 3 above
-        w6_machine_approx = self._Rips_FSM_Generator__shortlex_machine().concatable_intersection(self._Rips_FSM_Generator__first_letter_excluder(self.lesser_star[self.ray[0]].union(set(self.ray))))
+        w6_machine_approx = self._Rips_FSM_Generator__shortlex_machine().intersection(self._Rips_FSM_Generator__first_letter_excluder(self.lesser_star[self.ray[0]].union(set(self.ray))))
         #If there are bugs, it's because of this machine, but I believe this machine is correct.
 
         w1_machine = self.horocyclic_suffix_machine_1()
         w2_machine = self.horocyclic_suffix_machine_2()
-        w12_machine = w1_machine.unambiguous_concatenation(w2_machine)
+        w12_machine = w1_machine.concatenation(w2_machine)
         
-        w5w6_machine = (w5_machine.unambiguous_concatenation(w6_machine_approx)).concatable_intersection(self._Rips_FSM_Generator__first_letter_excluder({self.ray[1]}.union(self.lesser_star[self.ray[1]].intersection(self.c_map[self.ray[0]]))))
+        w5w6_machine = (w5_machine.concatenation(w6_machine_approx)).intersection(self._Rips_FSM_Generator__first_letter_excluder({self.ray[1]}.union(self.lesser_star[self.ray[1]].intersection(self.c_map[self.ray[0]]))))
 
-        return w12_machine.unambiguous_concatenation(w5w6_machine)
+        return w12_machine.concatenation(w5w6_machine)
 
     #We will not use the even_horocyclic_suffix_machine or the odd_horocyclic_suffix_machine in practice.
     
+    '''
+    Commented out for now because they involve the _interspersal operation, which is not implemented in automaton_MWE.Automaton
+
     def even_horocyclic_suffix_machine(self) -> ConcatableAutomaton:
 
         return ((self.horocyclic_suffix_machine_1256())._interspersal(self.horocyclic_suffix_machine_1234()))
@@ -127,6 +129,8 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
     def odd_horocyclic_suffix_machine(self) -> ConcatableAutomaton:
 
         return ((self.horocyclic_suffix_machine_1234())._interspersal(self.horocyclic_suffix_machine_1256()))
+
+    '''
 
     def horocyclic_edge_checker(self, SubwordDict) -> Automaton:
         '''
@@ -145,52 +149,55 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
 
         
         
-
+        state_set = set()
+        transition_set = set()
         NonFinalStates = []
-        FinalStates = []
-        TotalTransitions = []
-        FinishedStates = []
+        finished_states = set()
 
         FinalSubword = max(SubwordDict.values())
 
         (StatesWithoutUncancelables, NewTransitions) = self.generate_states_without_uncancelables(SubwordDict)
+        state_set.update(set(StatesWithoutUncancelables))
+        transition_set.update(set(NewTransitions))
 
-        print('Completed the uncancelable states. There are ', len(StatesWithoutUncancelables), ' of them.')
+        #print('Completed the uncancelable states. There are ', len(StatesWithoutUncancelables), ' of them.')
         
         NonFinalStates.extend(StatesWithoutUncancelables)
-        TotalTransitions.extend(NewTransitions)
         
         for StateWithoutUncancelables in StatesWithoutUncancelables:
             (NewStates, NewTransitions) = self.generate_first_noncanceling_transitions(StateWithoutUncancelables,SubwordDict)
             NonFinalStates.extend(NewStates)
-            TotalTransitions.extend(NewTransitions)
-            FinishedStates.append(StateWithoutUncancelables)
+            state_set.update(set(NewStates))
+            transition_set.update(set(NewTransitions))
 
-        print('Completed the first batch of transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(NonFinalStates)), ' states in total')
+            finished_states.add(StateWithoutUncancelables)
+
+        #print('Completed the first batch of transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(NonFinalStates)), ' states in total')
         
-        while len(NonFinalStates)>0:
+        while NonFinalStates:
             SourceState = NonFinalStates.pop(0)
-            if SourceState in FinishedStates:
+            if SourceState in finished_states:
                 continue
 
             (NewStates, NewTransitions) = self.get_nonterminal_transitions(SourceState, SubwordDict)
             NonFinalStates.extend(NewStates)
-            TotalTransitions.extend(NewTransitions)
-            FinishedStates.append(SourceState)
+            state_set.update(set(NewStates))
+            transition_set.update(set(NewTransitions))
+            finished_states.add(SourceState)
 
-        print('Completed the nonterminal transitions. There are ', len(TotalTransitions), ' transitions and ', len(set(FinishedStates)), ' states in total')
+        #print('Completed the nonterminal transitions. There are ', len(TotalTransitions), ' transitions and ', len(set(FinishedStates)), ' states in total')
         
-        for SourceState in FinishedStates:
+        for SourceState in finished_states:
             try:
                 (FinalState, FinalTransition) = self.get_double_blank_transition(SourceState, FinalSubword)
             except TypeError:
                 continue
-            FinalStates.append(FinalState)
-            TotalTransitions.append(FinalTransition)
+            state_set.add(FinalState)
+            transition_set.add(FinalTransition)
 
-        print('completed the final transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(FinalStates)), ' final states in total')
+        #print('completed the final transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(FinalStates)), ' final states in total')
         
-        return Automaton(TotalTransitions)
+        return Automaton(state_set, transition_set)
 
     def horocyclic_edge_checker_different_length(self) -> Automaton:
         '''
@@ -222,65 +229,68 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
             except KeyError:
                 SubwordDict[letter] = 3
 
+        state_set = set()
+        transition_set = set()
         NonFinalStates = []
         PreFinalStates = []
-        FinalStates = []
-        TotalTransitions = []
-        FinishedStates = []
+        FinishedStates = set()
 
         #The beginning of this machine is the same as the previous one. All that needs to change is that we need to check that there are precisely two input pairs ('-', 'letter').
         #Because of these two blank characters at the end of the word w, there is no need for an input ('-', '-') to indicate that the word has ended.
         
         (StatesWithoutUncancelables, NewTransitions) = self.generate_states_without_uncancelables(SubwordDict)
-
-        print('Completed the uncancelable states. There are ', len(StatesWithoutUncancelables), ' of them.')
+        state_set.update(set(StatesWithoutUncancelables))
+        transition_set.update(set(NewTransitions))
+        #print('Completed the uncancelable states. There are ', len(StatesWithoutUncancelables), ' of them.')
         
         NonFinalStates.extend(StatesWithoutUncancelables)
-        TotalTransitions.extend(NewTransitions)
         
         for StateWithoutUncancelables in StatesWithoutUncancelables:
             (NewStates, NewTransitions) = self.generate_first_noncanceling_transitions(StateWithoutUncancelables,SubwordDict)
             NonFinalStates.extend(NewStates)
-            TotalTransitions.extend(NewTransitions)
-            FinishedStates.append(StateWithoutUncancelables)
+            state_set.update(set(NewStates))
+            transition_set.update(set(NewTransitions))
+            FinishedStates.add(StateWithoutUncancelables)
 
-        print('Completed the first batch of transitions. There are ', len(TotalTransitions), 'transitions and ', len(NonFinalStates), ' states in total')
+        #print('Completed the first batch of transitions. There are ', len(TotalTransitions), 'transitions and ', len(NonFinalStates), ' states in total')
         
-        while len(NonFinalStates) > 0:
+        while NonFinalStates:
             SourceState = NonFinalStates.pop(0)
             if SourceState in FinishedStates:
                 continue
 
             (NewStates, NewTransitions) = self.get_nonterminal_transitions(SourceState, SubwordDict)
             NonFinalStates.extend(NewStates)
-            TotalTransitions.extend(NewTransitions)
-            FinishedStates.append(SourceState)
+            state_set.update(set(NewStates))
+            transition_set.update(set(NewTransitions))
+            FinishedStates.add(SourceState)
 
-        print('Completed the nonterminal transitions. There are ', len(TotalTransitions), ' transitions and ', len(set(FinishedStates)), ' states in total')
+        #print('Completed the nonterminal transitions. There are ', len(TotalTransitions), ' transitions and ', len(set(FinishedStates)), ' states in total')
         
-        for SourceState in set(FinishedStates):
-            for letter in SourceState.label()[9]:
+        for SourceState in FinishedStates:
+            for letter in SourceState.label[9]:
                 holder = self.get_single_blank_transition(SourceState, letter, SubwordDict)
                 if holder is None:
                     continue
                 (PreFinalState, PreFinalTransition) = holder
                 PreFinalStates.append(PreFinalState)
-                TotalTransitions.append(PreFinalTransition)
+                state_set.add(PreFinalState)
+                transition_set.add(PreFinalTransition)
 
-        print('Completed the first set of blank transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(PreFinalStates)), ' pre-final states in total')
+        #print('Completed the first set of blank transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(PreFinalStates)), ' pre-final states in total')
 
         for SourceState in set(PreFinalStates):
-            for letter in SourceState.label()[9]:
+            for letter in SourceState.label[9]:
                 holder = self.get_single_blank_transition(SourceState, letter, SubwordDict)
                 if holder is None:
                     continue
                 (FinalState, FinalTransition) = holder
-                FinalStates.append(FinalState)
-                TotalTransitions.append(FinalTransition)
+                state_set.add(FinalState)
+                transition_set.add(FinalTransition)
 
-        print('Completed the second set of blank transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(FinalStates)), ' final states in total')
+        #print('Completed the second set of blank transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(FinalStates)), ' final states in total')
         
-        return Automaton(TotalTransitions)
+        return Automaton(state_set, transition_set)
         
     '''
     What follow are subroutines for the methods horocyclic_edge_checker_same_length and horocyclic_edge_checker_different_length.
@@ -321,7 +331,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
                
         for SourceState in StatesWithoutUncancelables:
             for letter in self.alphabet:
-                NewSubword = max(SourceState.label()[10][0], SubwordDict[letter])
+                NewSubword = max(SourceState.label[10][0], SubwordDict[letter])
                 NewState = FSMState( ( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (NewSubword, NewSubword), True ) ,
                               is_initial = (NewSubword == 1), is_final = False)
                 TransitionList.append(FSMTransition(SourceState, NewState, (letter, letter)))
@@ -334,7 +344,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         #:param SubwordDict: A dictionary whose keys are letters and whose values are the first subword that letter appears in.
         #:return: A pair consisting of a list of the states that follow StateWithoutUncancelables and a list a of the transitions out of StateWithoutUncancelables.
 
-        if StateWithoutUncancelables.label()[8] != ():
+        if StateWithoutUncancelables.label[8] != ():
             raise ValueError('This state has uncancelable letters')
         
         ResultingStates = []
@@ -349,7 +359,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
                 continue
 
             #In this setting, we will need to change the value at every 
-            NewLabel = self._mutable_label(StateWithoutUncancelables.label())
+            NewLabel = self._mutable_label(StateWithoutUncancelables.label)
             NewNW = max(NewLabel[10][0], SubwordDict[WLetter])                    
             NewNV = max(NewLabel[10][1], SubwordDict[VLetter])
             NewLabel[10] = (NewNW, NewNV)
@@ -381,20 +391,20 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         #:param SubwordDict: A dictionary whose keys are letters and whose values are the first subword that letter appears in.
         #:return: A pair consisting of a list of the states that follow SourceState and a list a of the transitions out of SourceState.
 
-        OldBit = SourceState.label()[11]
-        (OldNW, OldNV) = SourceState.label()[10]
+        OldBit = SourceState.label[11]
+        (OldNW, OldNV) = SourceState.label[10]
         OldSubwordPair = (OldNW, OldNV)
 
         ResultingStates = []
         Transitions = []
 
-        for LetterPair in product(SourceState.label()[9], SourceState.label()[9]):
+        for LetterPair in product(SourceState.label[9], SourceState.label[9]):
             WLetter = LetterPair [0]
             VLetter = LetterPair [1]
             AddingLetter = LetterPair[int(OldBit)]
             CancelingLetter = LetterPair[1-int(OldBit)]
             
-            NewLabel = self._mutable_label(SourceState.label())
+            NewLabel = self._mutable_label(SourceState.label)
             NewNW = max(NewLabel[10][0], SubwordDict[WLetter])                    
             NewNV = max(NewLabel[10][1], SubwordDict[VLetter])
             NewSubwordPair = (NewNW, NewNV)
@@ -527,7 +537,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
 
         if SourceState.is_final:
             raise ValueError('The provided state is final already')
-        NewLabel = self._mutable_label(SourceState.label())
+        NewLabel = self._mutable_label(SourceState.label)
         NewUncancelableList = []
         for i in range (1, FinalSubword):
             NewUncancelableList.extend(NewLabel[2*i-2].word_as_list)
@@ -570,7 +580,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         If an uncancelable pair is created, this method returns None.
         '''
         
-        NewLabel = self._mutable_label(SourceState.label())
+        NewLabel = self._mutable_label(SourceState.label)
         NewUncancelableList = []
     
     
