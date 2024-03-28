@@ -200,6 +200,8 @@ class Automaton(SageObject):
 
         initial_state = FSMState( (self.initial_state.label , other.initial_state.label), True, self.initial_state.is_final and other.initial_state.is_final)
         state_set.add(initial_state)
+        if initial_state.is_final:
+            has_final_state = True
 
         for key in self.dict[self.initial_state].keys():
             try:
@@ -217,6 +219,7 @@ class Automaton(SageObject):
                     has_final_state = True
 
         finished_states.add(initial_state)
+        
 
         while frontier:
             state = frontier.pop(0)
@@ -239,15 +242,71 @@ class Automaton(SageObject):
             finished_states.add(state)
 
         if not has_final_state:
-            raise ValueError('No final state is reached')
+            raise ValueError('No final state is reached. That is, the corresponding languages have empty intersection')
         
         return(Automaton(state_set, transition_set))
 
     def concatenation(self, other):
-        pass
+
+        #This operation does not have all the desired features of concatenation in a general deterministic automaton. However, it is sufficient for my purposes.
+        #In particular, it raises an error in the event of a necessary (but not sufficient) condition the concatenation not to be deterministic.
+        #In general, the concatenation can be determinized. However, this module does not implement the determinization algorithm.
+
+        if not isinstance(other, Automaton):
+            raise TypeError ('Can only take the fiber product of two automata.')
+        
+        if self.states.intersection(other.states) != set():
+            raise ValueError ('Cannot concatenate automata when they share states.')
+        #This also implies that the sets of transitions are disjoint
+        
+        letters_after_self_final_states = set()
+        for final_state in self.final_states:
+            letters_after_self_final_states.update(set(self.dict[final_state].keys()))
+        
+        if letters_after_self_final_states.intersection(set(other.dict[other.initial_state].keys())) != set():
+            raise ValueError ('It is unclear if this will be deterministic.')
+        
+        #If the second automaton does not accept the empty word, then we cannot allow any state in the first automaton to be final.
+        #This set will keep track of the states that were final in self, whether or not they are supposed to be final in the resulting automaton.
+        first_final_state_set = set()
+        if other.initial_state.is_final:
+            state_set = (self.states.union(other.states)).difference({other.initial_state})
+            first_final_state_set = self.final_states
+        else:
+            nonfinalized_first_states = set()
+            for state in self.states:
+                if state.is_final:
+                    nonfinalized_first_states.add(FSMState(state.label, state.is_initial, False))
+                    first_final_state_set.add(FSMState(state.label, state.is_initial, False))
+                else:
+                    nonfinalized_first_states.add(state)
+
+        transition_set = (self.transitions.union(other.transitions)).difference(other.transitions(other.initial_state))
+
+        for first_final_state in first_final_state_set:
+            for transition in other.transitions(other.initial_state):
+                #Edge case: loops in other from the starting state.
+                if transition.to_state == other.initial_state:
+                    new_transition = FSMTransition(first_final_state, first_final_state, transition.word_in)
+                    transition_set.add(new_transition)
+                    continue
+
+                new_transition = FSMTransition(first_final_state, transition.to_state, transition.word_in)
+                transition_set.add(new_transition)
+        
+        return(Automaton(state_set, transition_set))
 
     def process(self, input_tape):
-        pass
+        
+        if not hasattr(input_tape, typing.Iterable):
+            raise TypeError('The input tape should be an iterable')
+        
+        current_state = self.initial_state
 
-class FSMProcessIterator(SageObject, typing.Iterator):
-    pass
+        for input in input_tape:
+            try:
+                current_state = self.dict[current_state][input]
+            except KeyError:
+                return (False, None)
+        
+        return (current_state.is_final, current_state.label)
