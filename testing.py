@@ -10,9 +10,6 @@ from defining_data import WeirdGroupData, SierpinskiCarpetData, VirtualSurfaceDa
 class BasicTestSuite(unittest.TestCase):
     """ Basic test cases """
 
-    def test_something(self):
-        self.assertEqual(1, True)
-
     def test_virtual_surface_divergence_graph_mockup(self):
         #I am getting a strange error in processing a specific stage in test_virtual_surface_divergence_graph.
         Data = VirtualSurfaceData()
@@ -27,21 +24,21 @@ class BasicTestSuite(unittest.TestCase):
         #Check that each stage of the input can be processed.
         FirstTransitionIter = SuspectMachine.iter_transitions(SuspectMachine.initial_states()[0])
         FirstLabelList = [transition.word_in[0] for transition in FirstTransitionIter]
-        assert(any(label == ('b' , 'b') for label in FirstLabelList))
+        assert(any(label == 'b+b' for label in FirstLabelList))
         #The bug appears in the following line, which represents a step that occurs in processing the first input.
         #In this version, we get the ValueError State ((), (), (), (), (), (), (), (), (), ('a', 'b', 'd', 'e', 'c'), (1, 1), True) does not belong to a finite state machine while checking epsilon successors
-        SecondState = SuspectMachine.process([('b', 'b')])[1]
+        SecondState = SuspectMachine.process(['b+b'])[1]
         #In this version, we get the AttributeError 'FSMState' object has no attribute 'transitions'
         #SecondState = SuspectMachine.process([('b', 'b')], check_epsilon_transitions = False)[1]
         SecondTransitionIter = SuspectMachine.iter_transitions(SecondState)
         SecondLabelList = [transition.word_in[0] for transition in SecondTransitionIter]
-        assert(any(label == ('e', 'd') for label in SecondLabelList))
-        ThirdState = SuspectMachine.process([('b', 'b'), ('e', 'd')])[1]
+        assert(any(label == 'e+d' for label in SecondLabelList))
+        ThirdState = SuspectMachine.process(['b+b', 'e+d'])[1]
         ThirdTransitionIter = SuspectMachine.iter_transitions(ThirdState)
         ThirdLabelList = [transition.word_in[0] for transition in ThirdTransitionIter]
-        assert(any(label == ('-', '-') for label in ThirdLabelList))
+        assert(any(label == '-+-' for label in ThirdLabelList))
         #Check that the final state is accepted as is expected.
-        assert(SuspectMachine.process( [('b', 'b'), ('e', 'd'), ('-', '-')])[0])
+        assert(SuspectMachine.process( ['b+b', 'e+d', '-+-'])[0])
 
         
 
