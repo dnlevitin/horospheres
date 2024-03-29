@@ -37,7 +37,7 @@ class Rips_FSM_Generator:
         if '_' in StringOfAllLetters:
             raise ValueError(''' The character '_' is reserved for the word breaks in horocyclic suffices''')
         for character in self.alphabet:
-            if not hasattr(character, typing.Hashable):
+            if not isinstance(character, typing.Hashable):
                 raise TypeError('all letter of the alphabet must be hashable')
         
         #the lesser_star dictionary agrees with the function Star_< in the paper. When passed a key of a letter, it returns the set of letters that commute with and precede the key. Note the strict inequality.
@@ -85,7 +85,7 @@ class Rips_FSM_Generator:
             if SourceState in FinishedStates:
                 continue
         
-            SourceSet = set(SourceState.label())
+            SourceSet = set(SourceState.label)
             FinishedStates.add(SourceState)
             for nextletter in self.alphabet.difference(SourceSet):
                 NextName = tuple(sorted(SourceSet.intersection(self.c_map[nextletter]), key = lambda x: self.o_map[x]))
@@ -178,7 +178,7 @@ class Rips_FSM_Generator:
                 continue
 
             # Record outgoing edges (i.e. possible next letters) from SourceState. This is guaranteed to be unique by above if-statement
-            SourceSet = set(SourceState.label())
+            SourceSet = set(SourceState.label)
             for nextletter in restricted_alphabet.difference(SourceSet):
                 # This line computes the new set of forbidden letters
                 NextSet = SourceSet.intersection(self.c_map[nextletter]).union(self.lesser_star[nextletter].intersection(restricted_alphabet)).union({nextletter})
@@ -240,7 +240,7 @@ class Rips_FSM_Generator:
                 continue
 
             # Record outgoing edges (i.e. possible next letters) from SourceState. This is guaranteed to be unique by above if-statement
-            SourceSet = set(SourceState.label())
+            SourceSet = set(SourceState.label)
             for nextletter in restricted_alphabet.difference(SourceSet):
                 # This line computes the new set of forbidden letters
                 NextSet = SourceSet.intersection(self.c_map[nextletter]).union({nextletter})

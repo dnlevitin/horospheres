@@ -8,7 +8,7 @@ from itertools import product
 class FSMState(SageObject):
     
     def __init__(self, label, is_initial = False, is_final = False):
-        if not hasattr(label, typing.Hashable):
+        if not isinstance(label, typing.Hashable):
             raise TypeError('State Labels must be hashable')
         if type (is_initial) != bool:
             raise TypeError('parameter is_initial should be a boolean')
@@ -52,7 +52,7 @@ class FSMTransition(SageObject):
             raise TypeError('The FSMTransition constructor must be passed instances of FSMState')
         if from_state.label == to_state.label and from_state != to_state:
             raise ValueError('Transitions are disallowed between unequal states of the same label')
-        if not hasattr(word_in, typing.Hashable):
+        if not isinstance(word_in, typing.Hashable):
             raise TypeError('Transition labels must be hashable')
         self._from_state = from_state
         self._to_state = to_state
@@ -94,9 +94,8 @@ class Automaton(SageObject):
             raise TypeError('the second parameter should be a set')
         if not all(isinstance(transition, FSMTransition) for transition in transition_set):
             raise TypeError('parameter transition_set should consist of instances of FSMTransition')
-        for i in range(0, len(state_set)):
-            for j in range (i+1, len(state_set)):
-                if state_set[i].label == state_set[j].label:
+        for first_state, second_state in product(state_set,state_set):
+                if (first_state.label == second_state.label) and first_state != second_state:
                     raise ValueError('No automata are allowed to have multiple states with the same label')
                 
         for transition in transition_set:
@@ -111,8 +110,8 @@ class Automaton(SageObject):
             raise ValueError('Only one initial state is permitted')
         
         
-        finality_list = [state.is_final for state in state_set]
-        if not any(finality_list):
+        
+        if not any([state.is_final for state in state_set]):
             raise ValueError('No final state provided')
         
 
@@ -149,7 +148,7 @@ class Automaton(SageObject):
 
     def state(self, label) -> FSMState:
         
-        if not hasattr(label, typing.Hashable):
+        if not isinstance(label, typing.Hashable):
             raise TypeError('All labels are hashable. The provided input is not')
 
         for state in self.states:
@@ -162,7 +161,7 @@ class Automaton(SageObject):
         #Technically this returns a new FSMTransition rather than the one in the Automaton. This may cause problems.
         if (not isinstance(from_state, FSMState)) or (not isinstance(to_state, FSMState)):
             raise TypeError('parameters from_state and to_state must be instances of FSMState')
-        if not hasattr(word_in, typing.Hashable):
+        if not isinstance(word_in, typing.Hashable):
             raise TypeError('Transition labels must be hashable')
         
         #It may create problems for these errors to be of the same type.
@@ -187,21 +186,18 @@ class Automaton(SageObject):
             outgoing_transitions.add(FSMTransition(from_state, to_state, word_in))
         return outgoing_transitions
     
-    def intersection(self, other) -> Automaton:
+    def intersection(self, other) -> 'Automaton':
         if not isinstance(other, Automaton):
             raise TypeError ('Can only take the fiber product of two automata')
         
         state_set = set()
         transition_set = set()
-        has_final_state = False
 
         frontier = []
         finished_states = set()
 
-        initial_state = FSMState( (self.initial_state.label , other.initial_state.label), True, self.initial_state.is_final and other.initial_state.is_final)
+        initial_state = FSMState((self.initial_state.label , other.initial_state.label), True, self.initial_state.is_final and other.initial_state.is_final)
         state_set.add(initial_state)
-        if initial_state.is_final:
-            has_final_state = True
 
         for key in self.dict[self.initial_state].keys():
             try:
@@ -215,8 +211,6 @@ class Automaton(SageObject):
                 new_transition = FSMTransition(initial_state, new_state, key)
                 frontier.append(new_state)
                 transition_set.add(new_transition)
-                if (not has_final_state) and new_state.is_final:
-                    has_final_state = True
 
         finished_states.add(initial_state)
         
@@ -225,23 +219,23 @@ class Automaton(SageObject):
             state = frontier.pop(0)
             if state in finished_states:
                 continue
-            for key in self.dict[state.label[0]].keys():
+            self_state = self.state(state.label[0])
+            other_state = other.state(state.label[1])
+            for key in self.dict[self_state].keys():
                 try:
-                    other_new_state = other.dict[state.label[1]][key]
+                    other_new_state = other.dict[other_state][key]
                 except KeyError:
                     continue
                 else:
-                    self_new_state = self.dict[self.initial_state][key]
+                    self_new_state = self.dict[self_state][key]
                     new_state = FSMState( (self_new_state.label, other_new_state.label) , self_new_state.is_initial and other_new_state.is_initial, self_new_state.is_final and other_new_state.is_final )
                     state_set.add(new_state)
                     new_transition = FSMTransition(state, new_state, key)
                     frontier.append(new_state)
                     transition_set.add(new_transition)
-                    if (not has_final_state) and new_state.is_final:
-                        has_final_state = True
             finished_states.add(state)
 
-        if not has_final_state:
+        if not any([state.is_final for state in state_set]):
             raise ValueError('No final state is reached. That is, the corresponding languages have empty intersection')
         
         return(Automaton(state_set, transition_set))
@@ -298,7 +292,7 @@ class Automaton(SageObject):
 
     def process(self, input_tape):
         
-        if not hasattr(input_tape, typing.Iterable):
+        if not isinstance(input_tape, typing.Iterable):
             raise TypeError('The input tape should be an iterable')
         
         current_state = self.initial_state
