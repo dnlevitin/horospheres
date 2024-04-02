@@ -275,7 +275,7 @@ class Automaton(SageObject):
                 else:
                     nonfinalized_first_states.add(state)
 
-        transition_set = (self.transitions.union(other.transitions)).difference(other.transitions(other.initial_state))
+        transition_set = (self.transitions().union(other.transitions())).difference(other.transitions(other.initial_state))
 
         for first_final_state in first_final_state_set:
             for transition in other.transitions(other.initial_state):
