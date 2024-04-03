@@ -212,7 +212,7 @@ class Rips_FSM_Generator:
         for nextletter in restricted_alphabet:
 
             # Set destination as the set of legal next letters for each letter
-            NextName = (nextletter)
+            NextName = tuple(nextletter)
             NextState = FSMState(NextName, is_initial = False, is_final = True)
             TransitionList.append(FSMTransition(StartState, NextState, nextletter))
             

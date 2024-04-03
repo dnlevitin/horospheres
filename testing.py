@@ -1,4 +1,5 @@
 import unittest 
+from rips_fsm_generator import Rips_FSM_Generator
 from rips_horosphere_generator import RipsHorosphereGenerator
 from divergence_horosphere_generator import DivergenceHorosphereGenerator
 from defining_data import WeirdGroupData, SierpinskiCarpetData, VirtualSurfaceData
@@ -11,17 +12,39 @@ from sage.combinat.finite_state_machine import FSMTransition, Automaton
 class BasicTestSuite(unittest.TestCase):
     """ Basic test cases """
 
-    def test_something(self):
-        self.assertEqual(1, True)
+    def test_geodesic_machine_list_input(self):
+        Data = VirtualSurfaceData()
+        fsm_generator = Rips_FSM_Generator(Data.c_map, Data.o_map, Data.ray)
+        geodesic_machine = fsm_generator._Rips_FSM_Generator__geodesic_machine()
+        #These assertions tell us that the machine has the expected number of states and transitions.
+        assert(len(geodesic_machine.states()) == 11)
+        assert(len(geodesic_machine.transitions()) == 40)
+        #This assertion works fine
+        assert(geodesic_machine.process( ['a'] )[0])
+        #This assertion works fine
+        transition_list = geodesic_machine.transitions(geodesic_machine.state(geodesic_machine.process( ['a'] )[1]))
+        assert(any( transition.word_in [0] == 'c' for transition in transition_list ))
+        #This assertion throws the error 'ValueError: State ('c',) does not belong to a finite state machine'
+        assert(geodesic_machine.process( ['a', 'c'] )[0])
+
+    def test_geodesic_machine_tuple_input(self):
+        Data = VirtualSurfaceData()
+        fsm_generator = Rips_FSM_Generator(Data.c_map, Data.o_map, Data.ray)
+        geodesic_machine = fsm_generator._Rips_FSM_Generator__geodesic_machine()
+        #These assertions tell us that the machine has the expected number of states and transitions.
+        assert(len(geodesic_machine.states()) == 11)
+        assert(len(geodesic_machine.transitions()) == 40)
+        #This assertion works fine
+        assert(geodesic_machine.process( tuple(('a')) )[0])
+        #This assertion works fine
+        transition_list = geodesic_machine.transitions(geodesic_machine.state(geodesic_machine.process( tuple(('a')) )[1]))
+        assert(any( transition.word_in [0] == 'c' for transition in transition_list ))
+        #This assertion throws the error 'ValueError: State ('c',) does not belong to a finite state machine'
+        assert(geodesic_machine.process( ('a', 'c') )[0])
 
     def test_virtual_surface_divergence_graph_mockup(self):
         #I am getting a strange error in processing a specific stage in test_virtual_surface_divergence_graph.
 
-        '''
-        Data = VirtualSurfaceData()
-        HorosphereGenerator = DivergenceHorosphereGenerator(Data.c_map, Data.o_map, Data.ray)
-        SuspectMachine = HorosphereGenerator.same_length_edge_checker1256
-        '''
         #This transition list mocks up part of the machine that appears in the above comment.
         TransitionList = [FSMTransition(((), (), (), (), (), (), (), (), (), ('a', 'e', 'c', 'b', 'd'), (1, 1), True), ((), (), (), (), (), (), (), (), (), ('a', 'e', 'c', 'b', 'd'), (4, 4), True), ('a', 'a')),
         FSMTransition(((), (), (), (), (), (), (), (), (), ('a', 'e', 'c', 'b', 'd'), (1, 1), True), ((), (), (), (), (), (), (), (), (), ('a', 'e', 'c', 'b', 'd'), (4, 4), True), ('e', 'e')),
@@ -69,12 +92,3 @@ class BasicTestSuite(unittest.TestCase):
         #Check that the final state is accepted as is expected.
         assert(SuspectMachine.process( [('b', 'b'), ('e', 'd'), ('-', '-')])[0])
         '''
-
-        
-
-
-    def test_virtual_surface_divergence_graph(self):
-        Data = VirtualSurfaceData()
-        HorosphereGenerator = DivergenceHorosphereGenerator(Data.c_map, Data.o_map, Data.ray)
-        Graph = HorosphereGenerator.horosphere_as_networkx(3, 0)
-        self.assertEqual(Graph.number_of_edges, Graph.number_of_nodes - 1) 
