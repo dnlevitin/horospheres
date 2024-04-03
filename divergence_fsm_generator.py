@@ -155,7 +155,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
 
         (StatesWithoutUncancelables, NewTransitions) = self.generate_states_without_uncancelables(SubwordDict)
 
-        print('Completed the uncancelable states. There are ', len(StatesWithoutUncancelables), ' of them.')
+        # print('Completed the uncancelable states. There are ', len(StatesWithoutUncancelables), ' of them.')
         
         NonFinalStates.extend(StatesWithoutUncancelables)
         TotalTransitions.extend(NewTransitions)
@@ -166,7 +166,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
             TotalTransitions.extend(NewTransitions)
             FinishedStates.append(StateWithoutUncancelables)
 
-        print('Completed the first batch of transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(NonFinalStates)), ' states in total')
+        # print('Completed the first batch of transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(NonFinalStates)), ' states in total')
         
         while len(NonFinalStates)>0:
             SourceState = NonFinalStates.pop(0)
@@ -178,7 +178,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
             TotalTransitions.extend(NewTransitions)
             FinishedStates.append(SourceState)
 
-        print('Completed the nonterminal transitions. There are ', len(TotalTransitions), ' transitions and ', len(set(FinishedStates)), ' states in total')
+        # print('Completed the nonterminal transitions. There are ', len(TotalTransitions), ' transitions and ', len(set(FinishedStates)), ' states in total')
         
         for SourceState in FinishedStates:
             try:
@@ -188,9 +188,9 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
             FinalStates.append(FinalState)
             TotalTransitions.append(FinalTransition)
 
-        print('completed the final transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(FinalStates)), ' final states in total')
+        # print('completed the final transitions. There are ', len(TotalTransitions), 'transitions and ', len(set(FinalStates)), ' final states in total')
         
-        return Automaton(TotalTransitions)
+        return Automaton(TotalTransitions, initial_states = [( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (1, 1), True )], final_states = FinalStates)
 
     def horocyclic_edge_checker_different_length(self) -> Automaton:
         '''
@@ -309,22 +309,20 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         StatesWithoutUncancelables = []
 
         #This state will always exist
-        InitialState = FSMState( ( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (1, 1), True ),
-                              is_initial = True, is_final = False)
+        InitialState =  ( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (1, 1), True )
 
         StatesWithoutUncancelables.append(InitialState)
 
         #We only need a state without uncancelables for each subword that will actually appear.
         for value in set(SubwordDict.values()).difference({1}):
-            NewState = FSMState( ( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (value, value), True ) )
+            NewState =  ( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (value, value), True ) 
             StatesWithoutUncancelables.append(NewState)
                
         for SourceState in StatesWithoutUncancelables:
             for letter in self.alphabet:
-                NewSubword = max(SourceState.label()[10][0], SubwordDict[letter])
-                NewState = FSMState( ( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (NewSubword, NewSubword), True ) ,
-                              is_initial = (NewSubword == 1), is_final = False)
-                TransitionList.append(FSMTransition(SourceState, NewState, (letter, letter)))
+                NewSubword = max(SourceState[10][0], SubwordDict[letter])
+                NewState = ( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (NewSubword, NewSubword), True ) 
+                TransitionList.append((SourceState, NewState, (letter, letter)))
 
         return (StatesWithoutUncancelables, TransitionList)
 
@@ -334,7 +332,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         #:param SubwordDict: A dictionary whose keys are letters and whose values are the first subword that letter appears in.
         #:return: A pair consisting of a list of the states that follow StateWithoutUncancelables and a list a of the transitions out of StateWithoutUncancelables.
 
-        if StateWithoutUncancelables.label()[8] != ():
+        if StateWithoutUncancelables[8] != ():
             raise ValueError('This state has uncancelable letters')
         
         ResultingStates = []
@@ -349,7 +347,7 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
                 continue
 
             #In this setting, we will need to change the value at every 
-            NewLabel = self._mutable_label(StateWithoutUncancelables.label())
+            NewLabel = self._mutable_label(StateWithoutUncancelables)
             NewNW = max(NewLabel[10][0], SubwordDict[WLetter])                    
             NewNV = max(NewLabel[10][1], SubwordDict[VLetter])
             NewLabel[10] = (NewNW, NewNV)
@@ -369,32 +367,32 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
             NewLabel[8] = {CancelingLetter}
             NewLabel[9].intersection_update(self.c_map[CancelingLetter])
             
-            NewState = FSMState(self._hashable_label(NewLabel))
+            NewState = self._hashable_label(NewLabel)
             ResultingStates.append(NewState)
-            NewTransition = FSMTransition(StateWithoutUncancelables, NewState, LetterPair)
+            NewTransition = (StateWithoutUncancelables, NewState, LetterPair)
             Transitions.append(NewTransition)
         return(ResultingStates, Transitions)
 
-    def get_nonterminal_transitions(self, SourceState:FSMState, SubwordDict: dict[str: int]) -> tuple:
+    def get_nonterminal_transitions(self, SourceState, SubwordDict: dict[str: int]) -> tuple:
         #This method generates all the nonterminal successors of a state that has some uncancelable letters
         #:param SourceState: An FSMState with some uncancelable letters. 
         #:param SubwordDict: A dictionary whose keys are letters and whose values are the first subword that letter appears in.
         #:return: A pair consisting of a list of the states that follow SourceState and a list a of the transitions out of SourceState.
 
-        OldBit = SourceState.label()[11]
-        (OldNW, OldNV) = SourceState.label()[10]
+        OldBit = SourceState[11]
+        (OldNW, OldNV) = SourceState[10]
         OldSubwordPair = (OldNW, OldNV)
 
         ResultingStates = []
         Transitions = []
 
-        for LetterPair in product(SourceState.label()[9], SourceState.label()[9]):
+        for LetterPair in product(SourceState[9], SourceState[9]):
             WLetter = LetterPair [0]
             VLetter = LetterPair [1]
             AddingLetter = LetterPair[int(OldBit)]
             CancelingLetter = LetterPair[1-int(OldBit)]
             
-            NewLabel = self._mutable_label(SourceState.label())
+            NewLabel = self._mutable_label(SourceState)
             NewNW = max(NewLabel[10][0], SubwordDict[WLetter])                    
             NewNV = max(NewLabel[10][1], SubwordDict[VLetter])
             NewSubwordPair = (NewNW, NewNV)
@@ -445,9 +443,9 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
                     NewLabel[2*i+1] = []
                 NewLabel[2*CancelingSubword-2] = self.WordGeneratorMachine.word(CancelingLetter)
                 NewLabel[2*CancelingSubword-1].append( ({CancelingLetter}, self.c_map[CancelingLetter]) )
-                NewState = FSMState(self._hashable_label(NewLabel))
+                NewState = self._hashable_label(NewLabel)
                 ResultingStates.append(NewState)
-                NewTransition = FSMTransition(SourceState, NewState, LetterPair)
+                NewTransition = (SourceState, NewState, LetterPair)
                 Transitions.append(NewTransition)
                 continue
 
@@ -455,9 +453,9 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
             NewLabel = self.process_canceling_letter(NewLabel, CancelingLetter, SubwordDict)
             if NewLabel is None:
                 continue
-            NewState = FSMState(self._hashable_label(NewLabel))
+            NewState = self._hashable_label(NewLabel)
             ResultingStates.append(NewState)
-            NewTransition = FSMTransition(SourceState, NewState, (WLetter, VLetter))
+            NewTransition = (SourceState, NewState, (WLetter, VLetter))
             Transitions.append(NewTransition)
 
         return (ResultingStates, Transitions)
@@ -519,15 +517,17 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
                 Label[9].intersection_update(self.c_map[letter])
             return(Label)
     
-    def get_double_blank_transition(self, SourceState:FSMState, FinalSubword:int)->tuple:
+    def get_double_blank_transition(self, SourceState, FinalSubword:int)->tuple:
         #This method takes any nonterminal SourceState and computes the outgoing transition labeled ('-', '-').
         #:param SourceState: a non-final FSMState.
         #:param FinalSubword: 3 or 4, depending on the number of different values of SubwordDict.
         #:return: A pair consisting of a final state and a transition from SourceState to this final state labeled is ('-', '-'), or None if ending the inputs here yields an uncancelable pair.
 
-        if SourceState.is_final:
-            raise ValueError('The provided state is final already')
-        NewLabel = self._mutable_label(SourceState.label())
+        #Commented out in the current iteration because we are passing states as their labels. This never threw an error before so it's probably fine.
+        #if SourceState.is_final:
+        #    raise ValueError('The provided state is final already')
+        
+        NewLabel = self._mutable_label(SourceState)
         NewUncancelableList = []
         for i in range (1, FinalSubword):
             NewUncancelableList.extend(NewLabel[2*i-2].word_as_list)
@@ -548,8 +548,8 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         NewLabel.append('final')
         #Necessary to prevent issues with states that have matching labels.
         
-        NewState = FSMState(self._hashable_label(NewLabel), is_initial = False, is_final = True)
-        return( NewState, FSMTransition (SourceState, NewState, ('-','-')) )
+        NewState = self._hashable_label(NewLabel)
+        return( NewState, (SourceState, NewState, ('-','-')) )
 
     '''
     For the case where the words are different length, we will need one more subroutine. Since the words are of different lengths, we will assume the first input w is the shorter word.

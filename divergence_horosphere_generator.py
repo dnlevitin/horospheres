@@ -73,7 +73,7 @@ class DivergenceHorosphereGenerator:
 
         self.clique_dimension = Graph(GraphDict, format = 'dict_of_lists').clique_number()
         #self.clique_dimension = self._determine_clique_dimension_recursive(0, self.alphabet)
-        print('Clique Dimension is ', self.clique_dimension)
+        # print('Clique Dimension is ', self.clique_dimension)
 
     def _determine_clique_dimension_recursive(self, running_total: int, allowable_set:set) -> int:
         '''
@@ -210,14 +210,14 @@ class DivergenceHorosphereGenerator:
         
         Adjacencies = []
 
-        print('finding same length adjacencies for the word', HorocyclicSuffix.SubwordList)
+        # print('finding same length adjacencies for the word', HorocyclicSuffix.SubwordList)
 
         #We construct the list of horocyclic suffixes of the same length and at distance at most self.clique_dimension away.
         #We begin by deleting letters from HorocyclicSuffix
 
         #Edge case: HorocyclicSuffix is short enough that it backtracks all the way to the identity.
         if len(HorocyclicSuffix) <= self.clique_dimension:
-            print('This word backtracks all the way to the identity')
+            # print('This word backtracks all the way to the identity')
             BacktrackedWords = [self.word_gen.horocyclic_word([[],[],[],[]], HorocyclicSuffix.mode)]
         else:
             BacktrackedWords = self._backtracking_recursive(HorocyclicSuffix, self.clique_dimension, self.shortlex_machine.initial_states()[0])
@@ -226,7 +226,7 @@ class DivergenceHorosphereGenerator:
         for word in BacktrackedWords:
             CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension), self.geodesic_suffix_machine.process(word.word_as_list, check_epsilon_transitions = False)[1]))
 
-        print('The list of candidates is ', CandidateList)
+        # print('The list of candidates is ', CandidateList)
         while len(CandidateList) > 0:
             CurrentCandidate = CandidateList.pop(0)
             if CurrentCandidate in FinishedWords:
@@ -235,8 +235,8 @@ class DivergenceHorosphereGenerator:
             #The edge checker machine wants an input tape that consists of pairs of characters.
             InputList = list(zip(HorocyclicSuffix.word_as_list+['-'], CurrentCandidate.word_as_list+['-']))
             
-            print ('input pair ', HorocyclicSuffix.SubwordList, ' and ', CurrentCandidate.SubwordList)
-            print ('The zipped input is ', InputList)
+            # print ('input pair ', HorocyclicSuffix.SubwordList, ' and ', CurrentCandidate.SubwordList)
+            # print ('The zipped input is ', InputList)
             if HorocyclicSuffix.mode:
                 #These assertions work fine, but then we get an error saying that this state does not belong to a finite state machine.
                 #assert(self.same_length_edge_checker1234.has_state(( (), (), (),  (), (), (), (), (), (), tuple(self.alphabet), (1, 1), True )))
@@ -272,10 +272,10 @@ class DivergenceHorosphereGenerator:
             LettersCommutingWithClique = set(EndState.label()[9])
             #Check whether any of these letters is permitted by both the above states.
 
-            print('Processing pair ', HorocyclicSuffix.SubwordList, CurrentCandidate.SubwordList)
-            print('The elongated word is ', ElongatedWord, ' and the non-elongated word is ', NonElongatedWord)
-            print('The state of the elongated word is ', ElongatedState.label())
-            print('Its outgoing transitions are ', relevant_suffix_machine.transitions(ElongatedState))
+            # print('Processing pair ', HorocyclicSuffix.SubwordList, CurrentCandidate.SubwordList)
+            # print('The elongated word is ', ElongatedWord, ' and the non-elongated word is ', NonElongatedWord)
+            # print('The state of the elongated word is ', ElongatedState.label())
+            # print('Its outgoing transitions are ', relevant_suffix_machine.transitions(ElongatedState))
             
             #Recall that transition.word_in outputs a list containing the label of the transition, not the label itself.
             LettersAcceptedFromElongatedState = {transition.word_in[0] for transition in relevant_suffix_machine.iter_transitions(ElongatedState)}
@@ -316,7 +316,7 @@ class DivergenceHorosphereGenerator:
             if not letter in AcceptableLetters:
                 return Adjacencies
             
-        print('Finding shorter divergence adjacencies for ', HorocyclicSuffix.SubwordList)
+        # print('Finding shorter divergence adjacencies for ', HorocyclicSuffix.SubwordList)
         
         BacktrackedWords = []
         CandidateList = []
@@ -336,7 +336,7 @@ class DivergenceHorosphereGenerator:
         if HorocyclicSuffix[3] == []:
             #If so, then every letter of HorocyclicSuffix commutes with both self.ray[0] and self.ray[1], so that they all commute with one another.
             #Therefore, these words backtrack all the way to the identity.
-            print('This word has no third or fourth subword')
+            # print('This word has no third or fourth subword')
             CandidateList = self.get_all_length_n_horocyclic_suffixes(len(HorocyclicSuffix)-1, not (HorocyclicSuffix.mode ^ (len(HorocyclicSuffix)%2)))
 
         else:
@@ -349,10 +349,10 @@ class DivergenceHorosphereGenerator:
                                 
             for word in BacktrackedWords:
                 BacktrackedState = self.geodesic_suffix_machine.process(word.word_as_list, check_epsilon_transitions = False)[1]
-                print('The backtracked word is ', word.SubwordList, ', and its state in the geodesic suffix machine is ', BacktrackedState.label())
+                # print('The backtracked word is ', word.SubwordList, ', and its state in the geodesic suffix machine is ', BacktrackedState.label())
                 CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension)-1, BacktrackedState))
             
-        print('The candidate list is', CandidateList)
+        # print('The candidate list is', CandidateList)
 
         while CandidateList:
             CurrentCandidate = CandidateList.pop(0)
@@ -469,14 +469,17 @@ class DivergenceHorosphereGenerator:
         edges = []
 
         for suffix in HorocyclicSuffix_list:
-            edges.append( (str(suffix), str(newsuffix)) for newsuffix in self.calculate_divergence_adjacencies(suffix) )
+            for newsuffix in self.calculate_divergence_adjacencies(suffix):
+                edges.append( (str(suffix), str(newsuffix)))
         return(edges)
         
     def horosphere_as_networkx(self, length: int, BusemannValue: int):
         suffixes = self.get_all_length_n_horocyclic_suffixes(length, bool(BusemannValue % 2))
         print(f"Suffixes of length {length} calculated: \n\t\t {len(suffixes)} words found")
+        print(suffixes)
         edges = self.calculate_divergence_horosphere_edges(suffixes)
         print(f"Words processing completed: \n\t\t {len(suffixes)} words processed")
+        print(edges)
 
         G = nx.Graph()
         G.add_edges_from(edges)
@@ -506,8 +509,9 @@ class DivergenceHorosphereGenerator:
                 for i in reversed(range(0,4)):
                     if transition.word_in[0] in set(word[i]):
                         NewSubwordList = copy.deepcopy(word.SubwordList)
-                        ReversedSubword = copy.deepcopy(word.SubwordList[i])[::-1]
-                        DeletedSubword = (ReversedSubword[0:ReversedSubword.index(transition.word_in[0]):]+ReversedSubword[ReversedSubword.index(transition.word_in)+1::])[::-1]
+                        ReversedSubword = copy.deepcopy(word[i])[::-1]
+                        deletion_index = ReversedSubword.index(transition.word_in[0])
+                        DeletedSubword = (ReversedSubword[0:deletion_index:]+ReversedSubword[deletion_index+1::])[::-1]
                         NewSubwordList[i] = DeletedSubword
                         NewWord = self.word_gen.horocyclic_word(NewSubwordList, word.mode)
                         break
@@ -568,7 +572,7 @@ class DivergenceHorosphereGenerator:
         
         '''
     
-        if word[3] != []:
+        if word[2] != []:
             raise ValueError('Not implemented in the general case')
     
         #We will need to insert a letter into the fourth subword of word.
@@ -579,9 +583,9 @@ class DivergenceHorosphereGenerator:
         SplitIndex = None
         
         for index in  range(0, len(word[3])):
-            if not word[4][index] in self.c_map[SplitLetter]:
+            if not word[3][index] in self.c_map[SplitLetter]:
                 raise ValueError('Not implemented in the general case')
-            if self.o_map[word[4][index]] > self.o_map[SplitLetter] and SplitIndex is None:
+            if self.o_map[word[3][index]] > self.o_map[SplitLetter] and SplitIndex is None:
                 SplitIndex = index
                 
         #At the end of either loop, SplitIndex records either the first instance of a letter commuting with and following SplitLetter
