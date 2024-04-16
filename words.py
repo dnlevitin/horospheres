@@ -85,7 +85,7 @@ class HorocyclicWord(Sequence):
     def __init__(self, subword_list:list, mode:bool, commutation_dict: dict[str: list], order_dict: dict[str: int]):
         '''
         :param subwordlist: a list of 4 lists. Each inner list should be a list of strings.
-        :param mode: True if the word is of form 1234, False if the word is of form 1256. Note that the class will not check that the word is of the desired form.
+        :param mode: True if the word is of form 1234, False if the word is of form 1256. Note that the class constructor will not check that the word is of the desired form.
         '''
         if len(subword_list) != 4:
             raise ValueError ('Please specify exactly 4 (possibly empty) subwords')

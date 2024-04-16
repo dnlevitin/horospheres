@@ -315,29 +315,35 @@ class DivergenceHorosphereGenerator:
         for letter in HorocyclicSuffix[3]:
             if not letter in AcceptableLetters:
                 return Adjacencies
-            
-        # print('Finding shorter divergence adjacencies for ', HorocyclicSuffix.SubwordList)
+
+        if HorocyclicSuffix.word_as_list == ['e']:
+            print('Finding shorter divergence adjacencies for ', HorocyclicSuffix.SubwordList)
+            print('The mode of this word is ', HorocyclicSuffix.mode)
         
         BacktrackedWords = []
         CandidateList = []
         FinishedWords = []
 
-        #This list will keep track of the letters to add to the shorter word. 
-        #The horocyclic suffix mode tells us the last letter of the prefix associated to HorocyclicSuffix. It is self.ray[0] if HorocyclicSuffix.mode is False, or self.ray[1] if HorocyclicSuffix.mode is True.
-        #Therefore, the 0th letter of the shorter word is self.ray[1] if HorocyclicSuffix.mode is False, or self.ray[0] if HorocyclicSuffix.mode is True.
+        #These lists will keep track of the letters that must be added to the shorter word, depending on the mode of the shorter word. 
+        #The horocyclic suffix mode tells us the last letter of the prefix associated to HorocyclicSuffix. It is self.ray[0] for form 1256, or self.ray[1] for form 1234.
+        #Therefore, the first additional letter will be self.ray[1] for form 1256 or self.ray[0] for form 1234
         #Further extra letters alternate thereafter.
-        ExtensionList = []
+
+        #todo: move this into __init__ so that it doesn't get recalculated every time.
+        extension_list_1234 = []
+        extension_list_1256 = []
         for length in range(0, self.clique_dimension):
-            if HorocyclicSuffix.mode ^ length%2:
-                ExtensionList.append(self.ray[0])
-            else:
-                ExtensionList.append(self.ray[1])
-        
+            extension_list_1234.append(self.ray[length%2])
+            extension_list_1256.append(self.ray[(length+1)%2])
+
+        #extension_list[int(word.mode)] will return the extension list for words of the given form.
+        extension_list = [extension_list_1256, extension_list_1234]
+
         if HorocyclicSuffix[3] == []:
             #If so, then every letter of HorocyclicSuffix commutes with both self.ray[0] and self.ray[1], so that they all commute with one another.
             #Therefore, these words backtrack all the way to the identity.
-            # print('This word has no third or fourth subword')
-            CandidateList = self.get_all_length_n_horocyclic_suffixes(len(HorocyclicSuffix)-1, not (HorocyclicSuffix.mode ^ (len(HorocyclicSuffix)%2)))
+            #print('This word has no third or fourth subword')
+            CandidateList = self.get_all_length_n_horocyclic_suffixes(len(HorocyclicSuffix)-1, (HorocyclicSuffix.mode ^ bool(len(HorocyclicSuffix)%2)))
 
         else:
             #In this case, the only shorter words that HorocyclicSuffix can be adjacent to are words that are 1 letter shorter. These must all be of the opposite form to HorocyclicSuffix
@@ -351,8 +357,9 @@ class DivergenceHorosphereGenerator:
                 BacktrackedState = self.geodesic_suffix_machine.process(word.word_as_list, check_epsilon_transitions = False)[1]
                 # print('The backtracked word is ', word.SubwordList, ', and its state in the geodesic suffix machine is ', BacktrackedState.label())
                 CandidateList.extend(self._geodesic_successor_horocyclic_suffixes(word, min(len(HorocyclicSuffix),self.clique_dimension)-1, BacktrackedState))
-            
-        # print('The candidate list is', CandidateList)
+
+        if HorocyclicSuffix.word_as_list == ['e']:     
+            print('The candidate list is', CandidateList)
 
         while CandidateList:
             CurrentCandidate = CandidateList.pop(0)
@@ -362,9 +369,26 @@ class DivergenceHorosphereGenerator:
             #Issue: Because of the value of SubwordDictUnequalLength evaluated at ray letters, this does not always produce a correct output
             #Workaround: calculate directly the desired output in the case where the length differs by more than 1.
             #If the length differs by 1, bifurcate based on whether the extra prefix letter can be canceled.
+            
+            if HorocyclicSuffix.word_as_list == ['e']:
+                print('The current candidate is ', CurrentCandidate.word_as_list)
+                print('Its mode is ', CurrentCandidate.mode)
 
-            CandidateInput = CurrentCandidate[0] + CurrentCandidate[1] + CurrentCandidate[2] + ExtensionList[0:len(HorocyclicSuffix)-len(CurrentCandidate):] + CurrentCandidate[3]
-            InputList = list(zip(HorocyclicSuffix.word_as_list+['-'], CandidateInput+['-']))
+            CandidateInput = CurrentCandidate[0] + CurrentCandidate[1] + CurrentCandidate[2] + extension_list[int(CurrentCandidate.mode)][0:len(HorocyclicSuffix)-len(CurrentCandidate):] + CurrentCandidate[3]
+            
+            #HorocyclicSuffix and CurrentCandidate should have opposite modes.
+            if HorocyclicSuffix.mode:
+                horocyclic_suffix_equivalent = HorocyclicSuffix[0] + [self.ray[1]] + HorocyclicSuffix[1] + [self.ray[0]] + HorocyclicSuffix[2] + [self.ray[1]] + HorocyclicSuffix[3]
+                current_candidate_equivalent = CurrentCandidate[0] + [self.ray[1]] + CurrentCandidate[1] + [self.ray[0] , self.ray[1]] + CurrentCandidate[2] + [self.ray[0]] + CurrentCandidate[3]
+            else:
+            #In the following case, HorocyclicSuffix is 1 letter longer than CurrentCandidate, so to equalize the lengths, two extra prefix letters are needed in current_candidate_equivalent
+                horocyclic_suffix_equivalent = HorocyclicSuffix[0] + [self.ray[1]] + HorocyclicSuffix[1] + [self.ray[0] , self.ray[1]] + HorocyclicSuffix[2] + [self.ray[0]] + HorocyclicSuffix[3]
+                current_candidate_equivalent = CurrentCandidate[0] + [self.ray[1]] + CurrentCandidate[1] + [self.ray[0], self.ray[1], self.ray[0]] + CurrentCandidate[2] + [self.ray[1]] + CurrentCandidate[3]
+
+            InputList = list(zip(horocyclic_suffix_equivalent+['-'], current_candidate_equivalent+['-']))
+
+            if HorocyclicSuffix.word_as_list == ['e']:
+                print('The zipped input pair is ', InputList)
 
             (InputAccepted, EndState) = self.different_length_edge_checker.process(InputList, check_epsilon_transitions = False)
 
@@ -372,9 +396,13 @@ class DivergenceHorosphereGenerator:
                 raise RuntimeError('The pair ', HorocyclicSuffix, ' and ', CandidateInput, 'yields an unprocessable accepted input')
 
             if not InputAccepted:
+                if HorocyclicSuffix.word_as_list == ['e']:
+                    print('The input was not accepted')
                 FinishedWords.append(CurrentCandidate)
                 continue
 
+            if HorocyclicSuffix.word_as_list == ['e']:
+                print('The input was accepted, reaching final state ', EndState)
             #The same length edge checker only tells us that no non-cancelable pair has been created.
             #To check whether the two have close successors, we need to check whether there is an infinite alternation of some pair of letters as described in Proposition 5.2.10
 
@@ -385,19 +413,65 @@ class DivergenceHorosphereGenerator:
             #Since we are keeping track of edges between suffixes, we must first process CancelingWord slightly.
             #Recall that if the final state has True in index 11, it means that the second input contains cancelable letters, including perhaps a prefix letter.
             #Note that the uncanceled letters between subwords 1 and 2 will always be uncancelable no matter what. So if prefix letters can be canceled, they must appear at the beginning of the cancelable word.
-
+            '''
             if EndState.label()[11]:
                 if HorocyclicSuffix[3] == 0:
                     #In this case, every extra prefix letter will appear in the cancelable set, but we want to drop all of them.
                     CancelingWord = CancelingWord[len(HorocyclicSuffix)-len(CurrentCandidate)::]
-                elif ExtensionList[0] in self.alphabet.intersection(*[self.fsm_gen.lesser_star[letter] for letter in HorocyclicSuffix[3]]):
+                elif extension_list[int(CurrentCandidate.mode)][0] in self.alphabet.intersection(*[self.fsm_gen.lesser_star[letter] for letter in HorocyclicSuffix[3]]):
                     #In this case, there is 1 extra prefix letter.
                     CancelingWord = CancelingWord[1::]
                     
                 #Otherwise, the extra prefix letter is in the uncancelable set, so there is no need to worry about it.
+            '''
+            if HorocyclicSuffix.word_as_list == ['e']:
+                print('The canceling word is ', CancelingWord)
+
+            # We need to calculate which letters can follow our two words and still remain shortlex. We could reconstitute the full words.
+            # However, if the Busemann value is large, this will involve processing a large amount of extraneous data.
+            # Therefore, we find related words whose shortlex state will be the same as those of our words.
+
+            # We want a pair of words horocyclic_suffix_equivalent and current_candidate_equivalent such that:
+            # 1. Both of them are shortlex and have shortlex states equal to those of the full words.
+            # 2. current_candidate_equivalent has extra prefix letter compared to horocyclic_suffix_equivalent, matching the difference between CurrentCandidate and HorocyclicSuffix
 
 
-             
+            '''
+            if HorocyclicSuffix.mode:
+                if not CurrentCandidate.mode:
+                    horocyclic_suffix_equivalent = HorocyclicSuffix[0] + [self.ray[1]] + HorocyclicSuffix[1] + [self.ray[0]] + HorocyclicSuffix[2] + [self.ray[1]] + HorocyclicSuffix[3]
+                else:
+                    horocyclic_suffix_equivalent = HorocyclicSuffix[0] + [self.ray[1]] + HorocyclicSuffix[1] + [self.ray[0]] + HorocyclicSuffix[2] + [self.ray[1]] + HorocyclicSuffix[3]
+            else:
+                if not CurrentCandidate.mode:
+                    horocyclic_suffix_equivalent = HorocyclicSuffix[0] + [self.ray[1]] + HorocyclicSuffix[1] + [self.ray[0] , self.ray[1]] + HorocyclicSuffix[2] + [self.ray[0]] + HorocyclicSuffix[3]
+                else:
+                    horocyclic_suffix_equivalent = HorocyclicSuffix[0] + [self.ray[1]] + HorocyclicSuffix[1] + [self.ray[0] , self.ray[1]] + HorocyclicSuffix[2] + [self.ray[0]] + HorocyclicSuffix[3]
+
+            if CurrentCandidate.mode:
+                current_candidate_equivalent = CurrentCandidate[0] + [self.ray[1]] + CurrentCandidate[1] + [self.ray[0]] + CurrentCandidate[2] + [self.ray[1]] + CurrentCandidate[3]
+            else:
+                current_candidate_equivalent = CurrentCandidate[0] + [self.ray[1]] + CurrentCandidate[1] + [self.ray[0] , self.ray[1]] + CurrentCandidate[2] + [self.ray[0]] + CurrentCandidate[3]
+            '''
+
+            if EndState.label()[11]:
+                horocyclic_suffix_equivalent = horocyclic_suffix_equivalent + list(CancelingWord)
+            else:
+                current_candidate_equivalent = current_candidate_equivalent + list(CancelingWord)
+
+            if HorocyclicSuffix.word_as_list == ['e']:
+                if EndState.label()[11]:
+                    print('The horocyclic suffix is the word that was extended, and the resulting word was ', HorocyclicSuffix.word_as_list + list(CancelingWord))
+                else:
+                    print('The candidate was the word that was extended, and the resulting word word was ', CurrentCandidate.word_as_list+ list(CancelingWord))
+                print('The equivalent word to the (possibly extended) horocyclic word is ', horocyclic_suffix_equivalent)
+                print('The equivalent word to the (possibly extended) candidate word is ', current_candidate_equivalent)
+
+            horocyclic_next_letters = self.alphabet.difference(set(self.shortlex_machine.process(horocyclic_suffix_equivalent)[1].label()))
+            candidate_next_letters = self.alphabet.difference(set(self.shortlex_machine.process(current_candidate_equivalent)[1].label()))
+
+            '''
+
             if HorocyclicSuffix.mode:
                 if EndState.label()[11]:
                     # print ('input pair ', HorocyclicSuffix, ' and ', CandidateInput, ' with canceling word ', CancelingWord)
@@ -429,14 +503,22 @@ class DivergenceHorosphereGenerator:
                     CandidateState = self.horocyclic_suffix_machine_1256.process(CurrentCandidate.word_as_list+ list(CancelingWord), check_epsilon_transitions = False)[1]
                     CandidateNextLetters = self.horocyclic_suffix_machine_1256.next_letters(CandidateState)
 
+            '''
+
+            if HorocyclicSuffix.word_as_list == ['e']:
+                print('The letters allowed after the (possibly extended) horocyclic word are ', horocyclic_next_letters)
+                print('The letters allowed after the (possibly extended) candidate word are ', candidate_next_letters)
+
             LettersCommutingWithClique = set(EndState.label()[9])
             #Check whether any of these letters is permitted by both the above states.
         
             for letter in LettersCommutingWithClique:
 
                 #Check if there is another letter in the alphabet which does not commute with the given letter
-                if letter in HorocyclicNextLetters.intersection(CandidateNextLetters) and LettersCommutingWithClique.difference(self.c_map[letter].union({letter})) != set():
+                if letter in horocyclic_next_letters.intersection(candidate_next_letters) and LettersCommutingWithClique.difference(self.c_map[letter].union({letter})) != set():
                     Adjacencies.append(CurrentCandidate)
+                    if HorocyclicSuffix.word_as_list == ['e']:
+                        print('The pair was accepted')
                     break
             FinishedWords.append(CurrentCandidate)
                     

@@ -143,7 +143,11 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
         :return: an Automaton which accepts as inputs pairs of letters, one from w and one from v, such that the words such that the lengths of each word are equal and there is no uncancelable pair
         '''
 
-        
+        #This almost always works, but fails when asked to process a the input string [('a', 'b'), ('-', '-')].
+        #As written, we pass a SubwordDict that puts 'a' in subword 2 (remember 0 indexing) because the first time that 'a' is allowed to be read in the suffix is in subword 3.
+        #What this means is that whenever a letter of self.ray is read that was used to be part of the prefix, it is treated as being in the wrong subword.
+        #In particular, since b is in subword 0 or 1, this means that the potentially cancelable word is evaluated as 'b', rather than 'a' as desired.
+        #A potential fix. Set a flag for whether subword 2 has begun. Once that flag changes, edit the values in SubwordDict.
         
 
         NonFinalStates = []
@@ -381,7 +385,6 @@ class Divergence_FSM_Generator(Rips_FSM_Generator):
 
         OldBit = SourceState[11]
         (OldNW, OldNV) = SourceState[10]
-        OldSubwordPair = (OldNW, OldNV)
 
         ResultingStates = []
         Transitions = []

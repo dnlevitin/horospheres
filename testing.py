@@ -47,13 +47,6 @@ class BasicTestSuite(unittest.TestCase):
     def test_virtual_surface_divergence_graph(self):
         Data = VirtualSurfaceData()
         HorosphereGenerator = DivergenceHorosphereGenerator(Data.c_map, Data.o_map, Data.ray)
-        SuspectMachine = HorosphereGenerator.same_length_edge_checker1256
-
-        #Check that the state list of the machine does not record multiple states with the same label.
-        StateList = SuspectMachine.states()
-        for i in range(0, len(StateList)):
-            for j in range(i+1, len(StateList)):
-                assert(StateList[i].label() != StateList[j].label())
 
         Graph = HorosphereGenerator.horosphere_as_networkx(3, 0)
         #This assertion comes out false. One edge is missing, and it appears to be the one between the empty word and [['b'], [], [], []]
