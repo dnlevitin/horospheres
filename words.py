@@ -1,15 +1,10 @@
 from _collections_abc import Sequence, Iterable
-from abc import ABC
-from sage.combinat.finite_state_machine import FiniteStateMachine, FSMState, FSMTransition, Automaton
-from sage.combinat.subset import powerset
-import matplotlib
-import networkx as nx
-import matplotlib.pyplot as plt
-from itertools import product
-import copy
 
 class WordGenerator:
-    def __init__(self, commutation_dict: dict[str: list], order_dict: dict[str: int]):
+
+
+    def __init__(self, commutation_dict: dict[str: list], 
+                 order_dict: dict[str: int]):
         self.c_map = commutation_dict
         self.o_map = order_dict
 
@@ -21,7 +16,10 @@ class WordGenerator:
 
 
 class Word(Sequence):
-    def __init__(self, word, commutation_dict: dict[str: list], order_dict: dict[str: int]):
+
+
+    def __init__(self, word, commutation_dict: dict[str: list],
+                  order_dict: dict[str: int]):
         if word is list:
             self.word_as_list = word
         elif isinstance(word, Iterable):
@@ -31,7 +29,6 @@ class Word(Sequence):
         self.c_map = commutation_dict
         self.o_map = order_dict
         self.alphabet = set().union(letter for letter in order_dict)
-        # super.__init__()
 
     def __getitem__(self, item):
         return self.word_as_list[item]
@@ -82,10 +79,16 @@ class Word(Sequence):
         return set(self.c_map[letter])
 
 class HorocyclicWord(Sequence):
-    def __init__(self, subword_list:list, mode:bool, commutation_dict: dict[str: list], order_dict: dict[str: int]):
+
+
+    def __init__(self, subword_list:list, mode:bool, 
+                 commutation_dict: dict[str: list], order_dict: dict[str: int]):
         '''
-        :param subwordlist: a list of 4 lists. Each inner list should be a list of strings.
-        :param mode: True if the word is of form 1234, False if the word is of form 1256. Note that the class constructor will not check that the word is of the desired form.
+        :param subwordlist: a list of 4 lists. Each inner list should be
+         a list of strings.
+        :param mode: True if the word is of form 1234, False if the word
+         is of form 1256. Note that the class constructor will not check
+          that the word is of the desired form.
         '''
         if len(subword_list) != 4:
             raise ValueError ('Please specify exactly 4 (possibly empty) subwords')
@@ -106,7 +109,8 @@ class HorocyclicWord(Sequence):
                 self.final_subword = i
                 break
 
-        self.word_as_list = subword_list[0]+subword_list[1]+subword_list[2]+subword_list[3]
+        self.word_as_list = subword_list[0] + subword_list[1] + subword_list[2]\
+        + subword_list[3]
                 
     def __getitem__(self, item):
         return self.SubwordList[item]
@@ -127,11 +131,15 @@ class HorocyclicWord(Sequence):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return('HorocyclicWord(' + str(self.SubwordList) +')')
+        return('HorocyclicWord(' + str(self.SubwordList) + ')')
     
     def copy(self):
-        copy_subword_list = [list(letter for letter in self.SubwordList[0]), list(letter for letter in self.SubwordList[1]), list(letter for letter in self.SubwordList[2]), list(letter for letter in self.SubwordList[3])]
-        return HorocyclicWord(copy_subword_list, self.mode, self.c_map, self.o_map)
+        copy_subword_list = [list(letter for letter in self.SubwordList[0]),
+                            list(letter for letter in self.SubwordList[1]), 
+                            list(letter for letter in self.SubwordList[2]), 
+                            list(letter for letter in self.SubwordList[3])]
+        return HorocyclicWord(copy_subword_list, self.mode, self.c_map, 
+                              self.o_map)
     
     def append(self, letter: str, position: int) -> None:
         if self.final_subword > position:

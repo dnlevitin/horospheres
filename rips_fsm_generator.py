@@ -1,25 +1,26 @@
-from _collections_abc import Sequence, Iterable
-from abc import ABC
-from sage.combinat.finite_state_machine import FiniteStateMachine, FSMState, FSMTransition, Automaton
-from sage.combinat.subset import powerset
-import matplotlib
-import networkx as nx
-import matplotlib.pyplot as plt
-from itertools import product
-from words import Word, WordGenerator
-import copy
-from concatable_automaton import ConcatableAutomaton
+from sage.combinat.finite_state_machine import FSMState, FSMTransition
+from enhanced_automaton import EnhancedAutomaton
 
-class Rips_FSM_Generator:
-    def __init__(self, commutation_dict:dict[str, set], order_dict: dict[str, int], ray: tuple[str]):
+class RipsFSMGenerator:
+    def __init__(self, commutation_dict:dict[str, set], 
+                 order_dict: dict[str, int], ray: tuple[str]):
         
         '''
-        This object will make the necessary automata for the Rips graph on a horosphere.
+        This object will make the necessary automata for the 2- Rips
+         graph on a horosphere.
     
-        :param commutation_dict: A dictionary representation of a defining graph. A letter (key) is associated with a list of letters (value) that the key letter commutes with. This list should not include the key letter.
-        Note: this program does not check that commutation_dict is symmetrical. You need to make sure that if your input allows a_i to commute with a_j, then a_j is also allowed to commute with a_i.
-        :param order_dict: A dictionary representation of a total ordering on the letter in the defining graph. A letter (key) is associated with an index (value) that represents that letters relative position in the ordering.
-        :param ray: A list of two characters that will be used to generate the chosen ray to infinity. In the paper these are referred to as a_i and a_j respectively.
+        :param commutation_dict: A dictionary representation of a 
+         defining graph. A keys are labels of vertices, and values are
+         the set of adjacent vertices. This list should not include the
+         key letter. In the RACG, `letter` commutes with itself and with
+         `self.commutation_dict[letter]`
+
+        :param order_dict: A dictionary representation of a total 
+         ordering on the alphabet. All values should be distinct.
+        
+        :param ray: A list of two characters that will be used to 
+         generate the chosen ray to infinity. In the paper these are 
+         referred to as a_i and a_j respectively.
         '''
 
         if not len(ray) == 2:
@@ -27,238 +28,248 @@ class Rips_FSM_Generator:
         elif ray [1] in commutation_dict[ray[0]]:
             raise ValueError ("The defining ray consists of two letters which commute")
         
+        if len(order_dict.values()) != len(set(order_dict.values())):
+            raise ValueError ('The provided order is not a total order')
+
         self.c_map = commutation_dict
         self.o_map = order_dict
         self.alphabet = set().union(letter for letter in self.o_map)
         self.ray = ray
 
-        StringOfAllLetters = ''.join(letter for letter in self.alphabet)
-        if '-' in StringOfAllLetters:
-            raise ValueError ('''The character '-' is reserved to be the blank character''')
-        if ',' in StringOfAllLetters:
-            raise ValueError('''The character ',' is reserved for delimiting lists''')
-        if '_' in StringOfAllLetters:
-            raise ValueError(''' The character '_' is reserved for the word breaks in horocyclic suffices''')
+        for letter in self.alphabet:
+            for adjacent_letter in self.alphabet[letter]:
+                if not letter in self.c_map[adjacent_letter]:
+                    raise ValueError('Parameter commutation_dict is not symmetric')
+
+        string_of_all_letters = ''.join(letter for letter in self.alphabet)
+        if '-' in string_of_all_letters:
+            raise ValueError ('''The character '-'
+                               is reserved to be the blank character''')
+        if ',' in string_of_all_letters:
+            raise ValueError('''The character ','
+                              is reserved for delimiting lists''')
         
-        #the lesser_star dictionary agrees with the function Star_< in the paper. When passed a key of a letter, it returns the set of letters that commute with and precede the key. Note the strict inequality.
+        # The lesser_star dictionary agrees with the function Star_< in 
+        # the paper. When passed a key of a letter, it returns the set 
+        # of letters that commute with and precede the key. 
+        # Note the strict inequality.
         self.lesser_star = {}
         for letter in self.alphabet:
-            LesserStarOfLetter = set(filter(lambda x: self.o_map[x] < self.o_map[letter], self.c_map[letter]))
-            self.lesser_star[letter] = LesserStarOfLetter
+            self.lesser_star[letter] = set(
+                filter(lambda x: self.o_map[x] < self.o_map[letter],
+                       self.c_map[letter])
+        )
         self.greater_star = {}
         for letter in self.alphabet:
-            self.greater_star[letter] = self.c_map[letter].difference(self.lesser_star[letter])
+            self.greater_star[letter] = self.c_map[letter].difference(
+                self.lesser_star[letter])
 
     
-    def __first_letter_excluder(self, excluded_letters:set) -> ConcatableAutomaton:
+    def first_letter_excluder(self, excluded_letters:set) -> \
+        EnhancedAutomaton:
+
         '''
-        Generate an FSM that prevents a chosen set of letters from reaching the beginning of the word without cancellation. The states in this machine represent which letters could still reach the beginning of the word.
+        Generate an automaton that prevents a chosen set of letters from
+         reaching the beginning of the word without cancellation. 
+         The states in this machine represent which letters could still
+         reach the beginning of the word.
         
-        :param excluded_letters: A set of letters which that accepted words should not begin with.
+        :param excluded_letters: A set of letters which that accepted
+         words should not begin with.
                 
-        :return: An automaton that accepts words which, without cancellation, cannot be commuted to begin with a letter in excluded_letters
+        :return: An automaton that accepts words which, without 
+         cancellation, cannot be commuted to begin with a letter in 
+         excluded_letters
         '''
+        
         if excluded_letters == self.alphabet:
-            # print("It appears that every letter has been excluded. Returning an automaton that accepts only the empty string")
-            SingleState = FSMState('origin', is_initial = True, is_final = True)
-            return ConcatableAutomaton({SingleState:[]})
-        sorted_excluded_letters = sorted(excluded_letters, key = lambda x: self.o_map[x])
-        TransitionList = []
-        Frontier = []
+            single_state = FSMState('origin', is_initial = True, is_final = True)
+            return EnhancedAutomaton({single_state:[]})
+        sorted_excluded_letters = sorted(excluded_letters,
+                                         key = lambda x: self.o_map[x])
+        transition_list = []
+        frontier = []
         state_list = []
-        StartStateName = tuple(sorted_excluded_letters)
-        state_list.append(StartStateName)
-        # StartStateName = ",".join(str(letter) for letter in sorted(excluded_letters, key = lambda x: self.o_map[x]))
+        start_state_name = tuple(sorted_excluded_letters)
+        state_list.append(start_state_name)
         
-        for nextletter in self.alphabet.difference(excluded_letters):
-            NextName = tuple(sorted(excluded_letters.intersection(self.c_map[nextletter]), key = lambda x: self.o_map[x]))
-            TransitionList.append((StartStateName, NextName, nextletter))
-            if not NextName in state_list:
-                state_list.append(NextName)
-            Frontier.append(NextName)
+        for next_letter in self.alphabet.difference(excluded_letters):
+            next_name = tuple(sorted(excluded_letters.intersection(
+                self.c_map[next_letter]), key = lambda x: self.o_map[x]))
+            transition_list.append((start_state_name, next_name, next_letter))
+            if not next_name in state_list:
+                state_list.append(next_name)
+            frontier.append(next_name)
             
-        #FinishedStates keeps track of which vertices we have already found all the edges for.
+        #Find further states by a BFS
         
-        FinishedStates = [StartStateName]
-        while Frontier:
-            SourceState = Frontier.pop(0)
-            if SourceState in FinishedStates:
+        finished_states = [start_state_name]
+        while frontier:
+            source_sate = frontier.pop(0)
+            if source_sate in finished_states:
                 continue
         
-            SourceSet = set(SourceState)
-            for nextletter in self.alphabet.difference(SourceSet):
-                NextName = tuple(sorted(SourceSet.intersection(self.c_map[nextletter]), key = lambda x: self.o_map[x]))
-                Frontier.append(NextName)
-                TransitionList.append((SourceState, NextName, nextletter))
-            if not NextName in state_list:
-                state_list.append(NextName)
+            source_set = set(source_sate)
+            for next_letter in self.alphabet.difference(source_set):
+                next_name = tuple(sorted(source_set.intersection(
+                    self.c_map[next_letter]), key = lambda x: self.o_map[x]))
+                frontier.append(next_name)
+                transition_list.append((source_sate, next_name, next_letter))
+            if not next_name in state_list:
+                state_list.append(next_name)
 
-            FinishedStates.append(SourceState)
-
-        #print('TransitionList is')
-        #print(TransitionList)
-        return(ConcatableAutomaton(TransitionList, initial_states = [StartStateName], final_states = state_list))
+            finished_states.append(source_sate)
+            
+        return(EnhancedAutomaton(transition_list, [start_state_name], state_list))
         
+    def __shortlex_machine(self, restricted_alphabet=None) -> EnhancedAutomaton:
 
-    def odd_accepter_machine(self) -> ConcatableAutomaton:
-        '''
-        This machine will accept words of odd length. Since words will be passed as lists of elements of the alphabet, the len function could do this.
-        However, the tools in sage.combinat.finite_state_machine don't easily facilitate combining FSMs with functions.
-
-        :return: An automaton whose accepted language consists of (unreduced) words of odd length.
-        '''
-
-        EvenState = FSMState('even', is_initial = True, is_final = False)
-        OddState = FSMState('odd', is_initial = False, is_final = True)
-        TransitionList = []
-        for letter in self.alphabet:
-            TransitionList.append(FSMTransition(EvenState, OddState, letter))
-            TransitionList.append(FSMTransition(OddState, EvenState, letter))
-        return ConcatableAutomaton(TransitionList)
-
-    def even_accepter_machine(self) -> ConcatableAutomaton:
-        '''
-        This machine will accept words of even length. Since words will be passed as lists of elements of the alphabet, the len function could do this.
-        However, the tools in sage.combinat.finite_state_machine don't easily facilitate combining FSMs with functions.
-
-        :return: An automaton whose accepted language consists of (unreduced) words of odd length.
-        '''
-
-        EvenState = FSMState('even', is_initial = True, is_final = True)
-        OddState = FSMState('odd', is_initial = False, is_final = False)
-        TransitionList = []
-        for letter in self.alphabet:
-            TransitionList.append(FSMTransition(EvenState, OddState, letter))
-            TransitionList.append(FSMTransition(OddState, EvenState, letter))
-        return ConcatableAutomaton(TransitionList)
-        
-    def __shortlex_machine(self, restricted_alphabet = None) -> ConcatableAutomaton:
         """
-        Generate an FSM that prevents letters from being written that either cancel or should have already been written. 
-        The states of this automaton represent the list of letters that a word cannot be followed by if it is to remain shortlex
+        Generate an FSM that prevents letters from being written that either
+         cancel or should have already been written. 
+        The states of this automaton represent the list of letters that
+        a word cannot be followed by if it is to remain shortlex.
 
-        :param restricted_alphabet: if desired, pass a subset of self.alphabet to get the shortlex machine for the special subgroup defined by the vertices in restricted_alphabet. If this set is empty, an FSM recognizing the empty word is returned.
+        :param restricted_alphabet: if desired, pass a subset of 
+         self.alphabet to get the shortlex machine for the special 
+         subgroup defined by the vertices in restricted_alphabet. 
+         If this set is empty, an automaton recognizing the empty word
+         is returned.
         
-        :return: An automaton whose accepted language consists of shortlex words.
+        :return: An automaton whose accepted language consists of 
+         shortlex words spelled with letters of `restricted_alphabet`.
         """
+
         if restricted_alphabet is None:
             restricted_alphabet = self.alphabet
         if not restricted_alphabet.issubset(self.alphabet):
-            raise ValueError("argument restricted_alphabet is not a subset of self.alphabet")
+            raise ValueError('argument restricted_alphabet is not a subset of \
+                             self.alphabet')
         if restricted_alphabet == set():
-            # print("You have requested the shortlex machine on an empty alphabet. Returning an automaton that accepts only the empty string")
-            SingleState = FSMState('origin', is_initial = True, is_final = True)
-            return ConcatableAutomaton({SingleState:[]})
+            single_state = FSMState('origin', is_initial = True, is_final = True)
+            return EnhancedAutomaton({single_state:[]})
         
-        StartState = ()
-        TransitionList = []
-        Frontier = []
-        States = [StartState]
-        FinishedStates = []
-
-        # Initialize the frontier with the legal next letters for single letter words 
-        for nextletter in restricted_alphabet:
-
-            # Set destination as the set of legal next letters for each letter
-            NextName = tuple(sorted((self.lesser_star[nextletter].intersection(restricted_alphabet)).union({nextletter}), key = lambda x: self.o_map[x]))
-            TransitionList.append((StartState, NextName, nextletter))
-            if not NextName in States:
-                States.append(NextName)
-            Frontier.append(NextName)
-
-        FinishedStates.append(StartState)
-
-        # Run BFS until we have finished the machine
-        while Frontier:
-            SourceState = Frontier.pop(0)
-
-            # We have already considered source and all its outgoing edges, we can skip it
-            if SourceState in FinishedStates:
-                continue
-
-            # Record outgoing edges (i.e. possible next letters) from SourceState. This is guaranteed to be unique by above if-statement
-            SourceSet = set(SourceState)
-            for nextletter in restricted_alphabet.difference(SourceSet):
-                # This line computes the new set of forbidden letters
-                NextSet = SourceSet.intersection(self.c_map[nextletter]).union(self.lesser_star[nextletter].intersection(restricted_alphabet)).union({nextletter})
-                NextName = tuple(sorted(NextSet, key = lambda x: self.o_map[x]))
-                #We can never return to the original state, so the next state is always final and never initial.
-
-                if not NextName in States:
-                    States.append(NextName)
-                                
-                Frontier.append(NextName)
-                TransitionList.append((SourceState, NextName, nextletter))
-            
-            FinishedStates.append(SourceState)
-               
-        #print(f"ShortLex Machine on alphabet {restricted_alphabet} Completed: Graph with \n\t\t{len(States)} Vertices and \n\t\t{len(TransitionList)} Edges.")
-        return (ConcatableAutomaton(TransitionList, initial_states = [StartState], final_states = States))
-    
-    def __geodesic_machine(self, restricted_alphabet = None)->ConcatableAutomaton:
-        """
-        Generate an FSM that prevents letters from being written that cancel . 
-        The states of this automaton represent the list of letters that a word cannot be followed by if it is to remain geodesic
-
-        :param restricted_alphabet: if desired, pass a subset of self.alphabet to get the geodesic machine for the special subgroup defined by the vertices in restricted_alphabet.
-        
-        :return: An automaton whose accepted language consists of geodesic words.
-        """
-        if restricted_alphabet is None:
-            restricted_alphabet = self.alphabet
-        if not restricted_alphabet.issubset(self.alphabet):
-            raise ValueError("argument restricted_alphabet is not a subset of self.alphabet")
-        if restricted_alphabet == set():
-            # print("You have requested the geodesic machine on an empty alphabet. Returning an automaton that accepts only the empty string")
-            SingleState = FSMState('origin', is_initial = True, is_final = True)
-            return ConcatableAutomaton({SingleState:[]})
-        
-        StartState = ()
-        TransitionList = []
-        Frontier = []
+        start_state = ()
+        transition_list = []
+        frontier = []
+        states = [start_state]
         finished_states = []
-        States = [StartState]
 
-        # Initialize the frontier with the legal next letters for single letter words 
-        for nextletter in restricted_alphabet:
+        # Compute the legal next letters for single letter words.
+        for next_letter in restricted_alphabet:
 
-            # Set destination as the set of legal next letters for each letter
-            NextName = tuple(nextletter)
-            TransitionList.append((StartState, NextName, nextletter))
-            States.append(NextName)
-            
-            Frontier.append(NextName)
-        
-        finished_states.append(StartState)
+            # Compute the set of legal next letters for each letter.
+            next_name = tuple(sorted((self.lesser_star[next_letter]\
+                                      .intersection(restricted_alphabet))\
+                                      .union({next_letter}),
+                                        key = lambda x: self.o_map[x]))
+            transition_list.append((start_state, next_name, next_letter))
+            if not next_name in states:
+                states.append(next_name)
+            frontier.append(next_name)
 
-        # Run BFS until we have finished the machine
-        while Frontier:
-            SourceState = Frontier.pop(0)
+        finished_states.append(start_state)
 
-            # If we have already considered source and all its outgoing edges, we can skip it
-            if SourceState in finished_states:
+        # Run a BFS until we have finished the machine.
+        while frontier:
+            source_sate = frontier.pop(0)
+            if source_sate in finished_states:
                 continue
 
-            # Record outgoing edges (i.e. possible next letters) from SourceState. This is guaranteed to be unique by above if-statement
-            SourceSet = set(SourceState)
-            for nextletter in restricted_alphabet.difference(SourceSet):
+            source_set = set(source_sate)
+            for next_letter in restricted_alphabet.difference(source_set):
+                # This line computes the new set of forbidden letters.
+                next_set = source_set.intersection(self.c_map[next_letter])\
+                    .union(self.lesser_star[next_letter]\
+                           .intersection(restricted_alphabet))\
+                    .union({next_letter})
+                next_name = tuple(sorted(next_set, key = lambda x: self.o_map[x]))
+                
+
+                if not next_name in states:
+                    states.append(next_name)
+                                
+                frontier.append(next_name)
+                transition_list.append((source_sate, next_name, next_letter))
+            
+            finished_states.append(source_sate)
+               
+        #This language is prefix-closed, so every state is final.
+        
+        #print(f"ShortLex Machine on alphabet {restricted_alphabet} Completed: Graph with \n\t\t{len(states)} Vertices and \n\t\t{len(transition_list)} Edges.")
+        return (EnhancedAutomaton(transition_list, [start_state], states))
+    
+    def __geodesic_machine(self, restricted_alphabet=None) -> EnhancedAutomaton:
+        """
+        Generate an FSM that prevents letters from being written that
+         cancel. 
+        The states of this automaton represent the tuple of letters that
+         a word cannot be followed by if it is to remain geodesic.
+
+        :param restricted_alphabet: if desired, pass a subset of 
+         self.alphabet to get the geodesic machine for the special 
+         subgroup defined by the vertices in restricted_alphabet.
+        
+        :return: An automaton whose accepted language consists of
+         geodesic words spelled with letters of `restricted_alphabet`.
+        """
+        if restricted_alphabet is None:
+            restricted_alphabet = self.alphabet
+        if not restricted_alphabet.issubset(self.alphabet):
+            raise ValueError("argument restricted_alphabet is not a subset of\
+                             self.alphabet")
+        if restricted_alphabet == set():
+            single_state = FSMState('origin', is_initial = True, is_final = True)
+            return EnhancedAutomaton({single_state:[]})
+        
+        start_state = ()
+        transition_list = []
+        frontier = []
+        finished_states = []
+        states = [start_state]
+
+        # Compute the legal next letters for single letter words. 
+        for next_letter in restricted_alphabet:
+
+            # Compute the set of legal next letters for each letter.
+            next_name = tuple(next_letter)
+            transition_list.append((start_state, next_name, next_letter))
+            states.append(next_name)
+            
+            frontier.append(next_name)
+        
+        finished_states.append(start_state)
+
+        # Run a BFS until we have finished the machine.
+        while frontier:
+            source_sate = frontier.pop(0)
+            if source_sate in finished_states:
+                continue
+
+            source_set = set(source_sate)
+            for next_letter in restricted_alphabet.difference(source_set):
                 # This line computes the new set of forbidden letters
-                NextSet = SourceSet.intersection(self.c_map[nextletter]).union({nextletter})
-                NextName = tuple(sorted(NextSet, key = lambda x: self.o_map[x]))
+                next_set = source_set.intersection(self.c_map[next_letter])\
+                    .union({next_letter})
+                next_name = tuple(sorted(next_set, key = lambda x: self.o_map[x]))
                                 
                 # Add NextState to our frontier to ensure all vertices are reached
-                Frontier.append(NextName)
-                if not NextName in States:
-                    States.append(NextName)
-                TransitionList.append((SourceState, NextName, nextletter))
+                frontier.append(next_name)
+                if not next_name in states:
+                    states.append(next_name)
+                transition_list.append((source_sate, next_name, next_letter))
 
-            finished_states.append(SourceState)
-               
-        #print(f"Geodesic Machine on alphabet {restricted_alphabet} completed: Graph with \n\t\t{len(States)} Vertices and \n\t\t{len(TransitionList)} Edges.")
-        return (ConcatableAutomaton(TransitionList, initial_states = [StartState], final_states = States))
+            finished_states.append(source_sate)
+
+        #This language is prefix-closed, so every state is final.
+
+        #print(f"Geodesic Machine on alphabet {restricted_alphabet} completed: Graph with \n\t\t{len(states)} Vertices and \n\t\t{len(transition_list)} Edges.")
+        return (EnhancedAutomaton(transition_list, [start_state], states))
     
-    def shortlex_suffix_machine(self) -> ConcatableAutomaton:
-        return self.__shortlex_machine().concatable_intersection(self.__first_letter_excluder(set(self.ray)))
+    def shortlex_suffix_machine(self) -> EnhancedAutomaton:
+        return self.__shortlex_machine().enhanced_intersection(
+            self.first_letter_excluder(set(self.ray)))
 
-    def geodesic_suffix_machine(self) -> ConcatableAutomaton:
-        return self.__geodesic_machine().concatable_intersection(self.__first_letter_excluder(set(self.ray)))
+    def geodesic_suffix_machine(self) -> EnhancedAutomaton:
+        return self.__geodesic_machine().enhanced_intersection(
+            self.first_letter_excluder(set(self.ray)))

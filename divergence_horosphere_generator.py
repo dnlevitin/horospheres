@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from itertools import product
 import copy
 from words import WordGenerator, HorocyclicWord
-from concatable_automaton import ConcatableAutomaton
-from rips_fsm_generator import Rips_FSM_Generator
+from enhanced_automaton import EnhancedAutomaton
+from RipsFSMGenerator import RipsFSMGenerator
 from divergence_fsm_generator import Divergence_FSM_Generator
 
 class DivergenceHorosphereGenerator:
@@ -23,8 +23,8 @@ class DivergenceHorosphereGenerator:
         self.fsm_gen = Divergence_FSM_Generator(self.c_map, self.o_map, self.ray)
         self.horocyclic_suffix_machine_1234 = self.fsm_gen.horocyclic_suffix_machine_1234()
         self.horocyclic_suffix_machine_1256 = self.fsm_gen.horocyclic_suffix_machine_1256()
-        self.shortlex_machine = self.fsm_gen._Rips_FSM_Generator__shortlex_machine()
-        self.geodesic_machine = self.fsm_gen._Rips_FSM_Generator__geodesic_machine()
+        self.shortlex_machine = self.fsm_gen._RipsFSMGenerator__shortlex_machine()
+        self.geodesic_machine = self.fsm_gen._RipsFSMGenerator__geodesic_machine()
         self.geodesic_suffix_machine = self.fsm_gen.geodesic_suffix_machine()
         self.word_gen = WordGenerator(self.c_map, self.o_map)
 
