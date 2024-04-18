@@ -6,7 +6,7 @@ class RipsHorosphereGenerator:
 
 
     '''
-    This machine will generate the 2-Rips graph on a horosphere of a
+    This object will generate the 2-Rips graph on a horosphere of a
      with a desired value of the Busemann function.
     '''
 

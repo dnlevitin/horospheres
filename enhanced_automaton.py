@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sage.combinat.finite_state_machine import FSMState, FSMTransition
+from sage.combinat.finite_state_machine import Automaton, FSMState, FSMTransition
 
 class EnhancedAutomaton(Automaton):
 

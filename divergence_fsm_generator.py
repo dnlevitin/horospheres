@@ -1,4 +1,4 @@
-from sage.combinat.finite_state_machine import FSMState
+from sage.combinat.finite_state_machine import FSMState, Automaton
 from itertools import product
 import copy
 from enhanced_automaton import EnhancedAutomaton
@@ -32,7 +32,8 @@ class Divergence_FSM_Generator(RipsFSMGenerator):
         if not len(ray) == 2:
             raise ValueError ("The defining ray should have two letters")
         elif ray [1] in commutation_dict[ray[0]]:
-            raise ValueError ("The defining ray consists of two letters which commute")
+            raise ValueError ("The defining ray consists of two letters\
+                              which commute")
         
         if len(order_dict.values()) != len(set(order_dict.values())):
             raise ValueError ('The provided order is not a total order')
@@ -45,7 +46,8 @@ class Divergence_FSM_Generator(RipsFSMGenerator):
         for letter in self.alphabet:
             for adjacent_letter in self.alphabet[letter]:
                 if not letter in self.c_map[adjacent_letter]:
-                    raise ValueError('Parameter commutation_dict is not symmetric')
+                    raise ValueError('Parameter commutation_dict is not\
+                                     symmetric')
 
         self.word_generator_machine = WordGenerator(self.c_map, self.o_map)
         
@@ -82,7 +84,7 @@ class Divergence_FSM_Generator(RipsFSMGenerator):
          one (a_j).
         '''
 
-        w1_machine = self._RipsFSMGenerator__shortlex_machine(
+        w1_machine = self.shortlex_machine(
             self.c_map[self.ray[0]].intersection(self.lesser_star[self.ray[1]]))
 
         return w1_machine
@@ -96,7 +98,7 @@ class Divergence_FSM_Generator(RipsFSMGenerator):
         (a_i), and follow the second one (a_j).
         '''
         
-        w2_machine = self._RipsFSMGenerator__shortlex_machine(
+        w2_machine = self.shortlex_machine(
             self.lesser_star[self.ray[0]]\
                 .intersection(self.greater_star[self.ray[1]]))
 
@@ -121,14 +123,14 @@ class Divergence_FSM_Generator(RipsFSMGenerator):
         # 3. w_3w_4, as a whole, cannot be rearranged to begin with a
         #    letter commuting with both letters and preceding a_i
 
-        w3_machine = self._RipsFSMGenerator__shortlex_machine(
+        w3_machine = self.shortlex_machine(
             self.lesser_star[self.ray[1]]).enhanced_intersection(
                 self.first_letter_excluder(self.c_map[self.ray[0]]))
 
         #This machine is so-named because its language is not exactly 
         # the words w_4, since in fact whether a word is allowed to be
         # w_4 depends on w_3 by condition 3 above.
-        w4_machine_approx = self._RipsFSMGenerator__shortlex_machine()\
+        w4_machine_approx = self.shortlex_machine()\
             .enhanced_intersection(self.first_letter_excluder(
                 self.lesser_star[self.ray[1]].union(set(self.ray)))
             )
@@ -163,14 +165,14 @@ class Divergence_FSM_Generator(RipsFSMGenerator):
         # 3. w_5w_6, as a whole, cannot be rearranged to begin with a
         #    letter commuting with both a_i and a_j and preceding a_j.
         
-        w5_machine = self._RipsFSMGenerator__shortlex_machine(
+        w5_machine = self.shortlex_machine(
             self.lesser_star[self.ray[0]]).enhanced_intersection(
                 self.first_letter_excluder(self.c_map[self.ray[1]]))
 
         #This machine is so-named because its language is not exactly 
         # the words w_6, since in fact whether a word is allowed to be
         # w_6 depends on w_5 by condition 3 above.
-        w6_machine_approx = self._RipsFSMGenerator__shortlex_machine()\
+        w6_machine_approx = self.shortlex_machine()\
         .enhanced_intersection(self.first_letter_excluder(
             self.lesser_star[self.ray[0]].union(set(self.ray)))
             )

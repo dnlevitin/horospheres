@@ -122,7 +122,7 @@ class RipsFSMGenerator:
             
         return(EnhancedAutomaton(transition_list, [start_state_name], state_list))
         
-    def __shortlex_machine(self, restricted_alphabet=None) -> EnhancedAutomaton:
+    def shortlex_machine(self, restricted_alphabet=None) -> EnhancedAutomaton:
 
         """
         Generate an FSM that prevents letters from being written that either
@@ -199,7 +199,7 @@ class RipsFSMGenerator:
         #print(f"ShortLex Machine on alphabet {restricted_alphabet} Completed: Graph with \n\t\t{len(states)} Vertices and \n\t\t{len(transition_list)} Edges.")
         return (EnhancedAutomaton(transition_list, [start_state], states))
     
-    def __geodesic_machine(self, restricted_alphabet=None) -> EnhancedAutomaton:
+    def geodesic_machine(self, restricted_alphabet=None) -> EnhancedAutomaton:
         """
         Generate an FSM that prevents letters from being written that
          cancel. 
