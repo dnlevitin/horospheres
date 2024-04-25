@@ -267,9 +267,9 @@ class RipsFSMGenerator:
         return (EnhancedAutomaton(transition_list, [start_state], states))
     
     def shortlex_suffix_machine(self) -> EnhancedAutomaton:
-        return self.__shortlex_machine().enhanced_intersection(
+        return self.shortlex_machine().enhanced_intersection(
             self.first_letter_excluder(set(self.ray)))
 
     def geodesic_suffix_machine(self) -> EnhancedAutomaton:
-        return self.__geodesic_machine().enhanced_intersection(
+        return self.geodesic_machine().enhanced_intersection(
             self.first_letter_excluder(set(self.ray)))

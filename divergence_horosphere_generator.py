@@ -6,7 +6,7 @@ import copy
 from words import WordGenerator, HorocyclicWord
 from enhanced_automaton import EnhancedAutomaton
 from rips_fsm_generator import RipsFSMGenerator
-from divergence_fsm_generator import Divergence_FSM_Generator
+from divergence_fsm_generator import DivergenceFSMGenerator
 
 
 class DivergenceHorosphereGenerator:
@@ -23,7 +23,7 @@ class DivergenceHorosphereGenerator:
         self.o_map = order_dict
         self.alphabet = set().union(letter for letter in self.o_map)
         self.ray = ray
-        self.fsm_gen = Divergence_FSM_Generator(self.c_map, self.o_map, self.ray)
+        self.fsm_gen = DivergenceFSMGenerator(self.c_map, self.o_map, self.ray)
         self.horocyclic_suffix_machine_1234 = \
             self.fsm_gen.horocyclic_suffix_machine_1234()
         self.horocyclic_suffix_machine_1256 = \
@@ -149,9 +149,10 @@ class DivergenceHorosphereGenerator:
         else:
             even_length_generator = self.horocyclic_suffix_machine_1256
             odd_length_generator = self.horocyclic_suffix_machine_1234
-        
+
         new_word = self.word_gen.horocyclic_word([[], [], [], []], mode)
         horocyclic_suffix_list.append(new_word)
+        #The Theta graph case throws an IndexError here. the machine does not have any initial states.
         frontier.append((even_length_generator.initial_states()[0], 0, new_word))
         
         #Edge case: `n==0`
@@ -460,7 +461,7 @@ class DivergenceHorosphereGenerator:
                 candidate_list.extend(
                     self._geodesic_successor_horocyclic_suffixes(
                         word, min(len(horocyclic_suffix)-1, 
-                                  self.clique_dimension)-1,
+                                  self.clique_dimension-1),
                         backtracked_state))
 
         while candidate_list:

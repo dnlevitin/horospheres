@@ -13,9 +13,9 @@ class BasicTestSuite(unittest.TestCase):
 
     def test_virtual_surface_divergence_graph(self):
         data = defining_data.VirtualSurfaceData()
-        HorosphereGenerator = defining_data.DivergenceHorosphereGenerator(
+        horosphere_generator = DivergenceHorosphereGenerator(
             data.c_map, data.o_map, data.ray)
 
-        graph = HorosphereGenerator.horosphere_as_networkx(3, 0)
+        graph = horosphere_generator.horosphere_as_networkx(3, 0)
         #This graph is supposed to be a path.
         self.assertEqual(graph.number_of_edges(), graph.number_of_nodes() - 1)

@@ -5,7 +5,7 @@ from enhanced_automaton import EnhancedAutomaton
 from rips_fsm_generator import RipsFSMGenerator
 from words import WordGenerator
 
-class Divergence_FSM_Generator(RipsFSMGenerator):
+class DivergenceFSMGenerator(RipsFSMGenerator):
 
 
     def __init__(self, commutation_dict:dict[str, set],
@@ -44,7 +44,7 @@ class Divergence_FSM_Generator(RipsFSMGenerator):
         self.ray = ray
 
         for letter in self.alphabet:
-            for adjacent_letter in self.alphabet[letter]:
+            for adjacent_letter in self.c_map[letter]:
                 if not letter in self.c_map[adjacent_letter]:
                     raise ValueError('Parameter commutation_dict is not\
                                      symmetric')
@@ -260,7 +260,7 @@ class Divergence_FSM_Generator(RipsFSMGenerator):
         # print('Completed the first batch of transitions. There are ', len(total_transitions), 'transitions and ', len(set(non_final_states)), ' states in total')
         
         #Run a BFS to find the remaining non-final states.
-        while non_final_states>0:
+        while non_final_states:
             source_state = non_final_states.pop(0)
             if source_state in finished_states:
                 continue

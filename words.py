@@ -11,8 +11,8 @@ class WordGenerator:
     def word(self, word):
         return Word(word, self.c_map, self.o_map)
 
-    def horocyclic_word(self, subwordlist, mode):
-        return HorocyclicWord(subwordlist, mode, self.c_map, self.o_map)
+    def horocyclic_word(self, subword_list, mode):
+        return HorocyclicWord(subword_list, mode, self.c_map, self.o_map)
 
 
 class Word(Sequence):
@@ -84,7 +84,7 @@ class HorocyclicWord(Sequence):
     def __init__(self, subword_list:list, mode:bool, 
                  commutation_dict: dict[str: list], order_dict: dict[str: int]):
         '''
-        :param subwordlist: a list of 4 lists. Each inner list should be
+        :param subword_list: a list of 4 lists. Each inner list should be
          a list of strings.
         :param mode: True if the word is of form 1234, False if the word
          is of form 1256. Note that the class constructor will not check
@@ -102,7 +102,7 @@ class HorocyclicWord(Sequence):
         self.alphabet = set().union(letter for letter in order_dict)
         self.mode = mode
         
-        self.SubwordList = subword_list 
+        self.subword_list = subword_list 
         self.final_subword = 0
         for i in reversed(range (0, 4)):
             if subword_list[i] != []:
@@ -113,7 +113,7 @@ class HorocyclicWord(Sequence):
         + subword_list[3]
                 
     def __getitem__(self, item):
-        return self.SubwordList[item]
+        return self.subword_list[item]
 
     def __len__(self):
         return len(self.word_as_list)
@@ -123,7 +123,7 @@ class HorocyclicWord(Sequence):
 
     def __eq__(self, other):
         if isinstance(other, HorocyclicWord):
-            return self.SubwordList == other.SubwordList
+            return self.subword_list == other.subword_list
         else:
             return False
 
@@ -131,19 +131,19 @@ class HorocyclicWord(Sequence):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return('HorocyclicWord(' + str(self.SubwordList) + ')')
+        return('HorocyclicWord(' + str(self.subword_list) + ')')
     
     def copy(self):
-        copy_subword_list = [list(letter for letter in self.SubwordList[0]),
-                            list(letter for letter in self.SubwordList[1]), 
-                            list(letter for letter in self.SubwordList[2]), 
-                            list(letter for letter in self.SubwordList[3])]
+        copy_subword_list = [list(letter for letter in self.subword_list[0]),
+                            list(letter for letter in self.subword_list[1]), 
+                            list(letter for letter in self.subword_list[2]), 
+                            list(letter for letter in self.subword_list[3])]
         return HorocyclicWord(copy_subword_list, self.mode, self.c_map, 
                               self.o_map)
     
     def append(self, letter: str, position: int) -> None:
         if self.final_subword > position:
             raise ValueError ('cannot append to subwords which have ended')
-        self.SubwordList[position].append(letter)
+        self.subword_list[position].append(letter)
         self.word_as_list.append(letter)
         self.final_subword = position
