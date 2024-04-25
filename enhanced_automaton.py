@@ -28,8 +28,8 @@ class EnhancedAutomaton(Automaton):
          with.
         (3) L_2 contains the empty word.
 
-        The code is a modification of the .concatenation(other) method
-         from sage.combinat.finite_state_machine.
+        The code is a modification of the `.concatenation(other)` method
+         from `sage.combinat.finite_state_machine`.
         If (2) is not satisfied, this should output a non-deterministic
          automaton recognizing L_1L_2
     
@@ -38,6 +38,16 @@ class EnhancedAutomaton(Automaton):
         :return: an `EnhancedAutomaton` without epsilon transitions
          recognizing the concatenated language L_1L_2
         '''
+
+        # Edge case: two singleton automata recognizing the empty word.
+        if len(self.states()) == 1 and  len(self.transitions()) == 0:
+            if len(other.states()) == 1 and len(other.transitions()) == 0:
+                # The state is relabeled as it would be in the code that
+                # follows.
+                single_state = FSMState((0, 'origin'), is_initial = True,
+                                        is_final = True)
+                return EnhancedAutomaton({single_state:[]})
+
 
         transition_list = []
         first_states = {}
@@ -51,7 +61,6 @@ class EnhancedAutomaton(Automaton):
             #accepted by the result, without needing an epsilon 
             #transition to a starting state of M_2
 
-    
         for s in other.iter_states():
             new_state = s.relabeled((1, s.label()))
             new_state.is_initial = False
