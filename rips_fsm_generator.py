@@ -37,7 +37,7 @@ class RipsFSMGenerator:
         self.ray = ray
 
         for letter in self.alphabet:
-            for adjacent_letter in self.alphabet[letter]:
+            for adjacent_letter in self.c_map[letter]:
                 if not letter in self.c_map[adjacent_letter]:
                     raise ValueError('Parameter commutation_dict is not symmetric')
 
