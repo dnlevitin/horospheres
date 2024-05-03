@@ -18,7 +18,7 @@ class BasicTestSuite(unittest.TestCase):
         transitions.
         """
 
-        #Case 1: the virtual surface group
+        # Case 1: the virtual surface group
         data = defining_data.VirtualSurfaceData()
         rips_fsm_generator = RipsFSMGenerator(data.c_map, data.o_map, data.ray)
         shortlex_machine = rips_fsm_generator.shortlex_machine()
@@ -46,7 +46,7 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(len(geodesic_suffix_machine.transitions()), 52)
 
 
-        #Case 2: for the Sierpinski Carpet group.
+        # Case 2: for the Sierpinski Carpet group.
         data = defining_data.SierpinskiCarpetData()
         rips_fsm_generator = RipsFSMGenerator(data.c_map, data.o_map, data.ray)
         shortlex_machine = rips_fsm_generator.shortlex_machine()
@@ -73,7 +73,7 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(len(geodesic_suffix_machine.states()), 58)
         self.assertEqual(len(geodesic_suffix_machine.transitions()), 454)
 
-        #Case 3: for the weird group.
+        # Case 3: for the weird group.
         data = defining_data.WeirdGroupData()
         rips_fsm_generator = RipsFSMGenerator(data.c_map, data.o_map, data.ray)
         shortlex_machine = rips_fsm_generator.shortlex_machine()

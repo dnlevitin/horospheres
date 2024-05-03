@@ -108,22 +108,14 @@ class DivergenceHorosphereGenerator:
         # lengths, these lists will keep track of the prefix letters 
         # that must be added to the shorter word, depending on the mode
         # of the shorter word. 
-        # `horocyclic_suffix.mode` tells us the last letter of the 
-        # prefix associated to `horocyclic_suffix`. It is `self.ray[0]` 
-        # for form 1256, or `self.ray[1]` for form 1234.
-        # Therefore, the first additional letter will be `self.ray[1]` 
-        # for form 1256 or `self.ray[0]` for form 1234
-        # Further extra letters alternate thereafter.
-        extension_list_1234 = []
-        extension_list_1256 = []
+        # `extension_list` will be a list of lists. `extension_list[0]`
+        # will be a list that starts with `self.ray[0]`, and alternate
+        # thereafter. `extension_list[1]` will be a list that starts 
+        # with `self.ray[1]` and alternate thereafter.
+        self.extension_list = [[],[]]
         for length in range(0, self.clique_dimension):
-            extension_list_1234.append(self.ray[length%2])
-            extension_list_1256.append(self.ray[(length+1)%2])
-
-        # Put these into a single list, so that 
-        # `self.extension_list[int(word.mode)]` will return the extension 
-        # list for words of the given form.
-        self.extension_list = [extension_list_1256, extension_list_1234]
+            self.extension_list[0].append(self.ray[length%2])
+            self.extension_list[1].append(self.ray[(length+1)%2])
 
     def get_all_length_n_horocyclic_suffixes(self, n:int, mode:bool) -> list:
         '''
@@ -469,24 +461,60 @@ class DivergenceHorosphereGenerator:
             if current_candidate in finished_words:
                 continue
 
-            # Use `extension_list` to add extra letters to the input.
-            candidate_input = current_candidate[0] + current_candidate[1]\
-                + current_candidate[2]\
-                + self.extension_list[int(current_candidate.mode)]\
-                    [0:len(horocyclic_suffix)-len(current_candidate):]\
-                 + current_candidate[3]
-            
-            #THESE LINES ARE WRONG!
-            #They assume that the length difference is 1.
-            
-            # `horocyclic_suffix` and `current_candidate` should have opposite modes.
-            if horocyclic_suffix.mode:
-                horocyclic_suffix_equivalent = horocyclic_suffix[0] + [self.ray[1]] + horocyclic_suffix[1] + [self.ray[0]] + horocyclic_suffix[2] + [self.ray[1]] + horocyclic_suffix[3]
-                current_candidate_equivalent = current_candidate[0] + [self.ray[1]] + current_candidate[1] + [self.ray[0] , self.ray[1]] + current_candidate[2] + [self.ray[0]] + current_candidate[3]
+            length_difference = len(horocyclic_suffix) - len(current_candidate)
+
+            if length_difference % 2:
+                # `horocyclic_suffix` and `current_candidate` should
+                # have opposite modes.
+                if horocyclic_suffix.mode:
+                    horocyclic_suffix_equivalent = horocyclic_suffix[0]\
+                        + [self.ray[1]] + horocyclic_suffix[1] + [self.ray[0]]\
+                        + horocyclic_suffix[2] + [self.ray[1]]\
+                        + horocyclic_suffix[3]
+                    current_candidate_equivalent = current_candidate[0]\
+                        + [self.ray[1]] + current_candidate[1]+ [self.ray[0]]\
+                        + self.extension_list[1][0:length_difference:]\
+                        + current_candidate[2] + [self.ray[0]]\
+                        + current_candidate[3]
+                else:
+                # In this case, `horocyclic_suffix` is 1 letter longer
+                # than `current_candidate`, so to equalize the lengths,
+                # two extra prefix letters are needed in
+                # `current_candidate_equivalent`.
+                    horocyclic_suffix_equivalent = horocyclic_suffix[0]\
+                        + [self.ray[1]] + horocyclic_suffix[1]\
+                        + [self.ray[0] , self.ray[1]] + horocyclic_suffix[2]\
+                        + [self.ray[0]] + horocyclic_suffix[3]
+                    current_candidate_equivalent = current_candidate[0]\
+                        + [self.ray[1]] + current_candidate[1]\
+                        + [self.ray[0], self.ray[1]]\
+                        + self.extension_list[0][0:length_difference:]\
+                        + current_candidate[2] + [self.ray[1]]\
+                        + current_candidate[3]
             else:
-            # In this case, `horocyclic_suffix` is 1 letter longer than current_candidate, so to equalize the lengths, two extra prefix letters are needed in current_candidate_equivalent
-                horocyclic_suffix_equivalent = horocyclic_suffix[0] + [self.ray[1]] + horocyclic_suffix[1] + [self.ray[0] , self.ray[1]] + horocyclic_suffix[2] + [self.ray[0]] + horocyclic_suffix[3]
-                current_candidate_equivalent = current_candidate[0] + [self.ray[1]] + current_candidate[1] + [self.ray[0], self.ray[1], self.ray[0]] + current_candidate[2] + [self.ray[1]] + current_candidate[3]
+                # `horocyclic_suffix` and `current_candidate` have the
+                # same modes.
+                if horocyclic_suffix.mode:
+                    horocyclic_suffix_equivalent = horocyclic_suffix[0]\
+                        + [self.ray[1]] + horocyclic_suffix[1] + [self.ray[0]]\
+                        + horocyclic_suffix[2] + [self.ray[1]]\
+                        + horocyclic_suffix[3]
+                    current_candidate_equivalent = current_candidate[0]\
+                        + [self.ray[1]] + current_candidate[1]+ [self.ray[0]]\
+                        + self.extension_list[1][0:length_difference:]\
+                        + current_candidate[2] + [self.ray[1]]\
+                        + current_candidate[3]
+                else:
+                    horocyclic_suffix_equivalent = horocyclic_suffix[0]\
+                        + [self.ray[1]] + horocyclic_suffix[1]\
+                        + [self.ray[0] , self.ray[1]] + horocyclic_suffix[2]\
+                        + [self.ray[0]] + horocyclic_suffix[3]
+                    current_candidate_equivalent = current_candidate[0]\
+                        + [self.ray[1]] + current_candidate[1]\
+                        + [self.ray[0], self.ray[1]]\
+                        + self.extension_list[0][0:length_difference:]\
+                        + current_candidate[2] + [self.ray[0]]\
+                        + current_candidate[3]
 
             input_list = list(zip(horocyclic_suffix_equivalent+['-'], 
                                   current_candidate_equivalent+['-']))
@@ -508,8 +536,8 @@ class DivergenceHorosphereGenerator:
             canceling_word = end_state.label()[4]
 
             # `canceling_word` will be written after either 
-            # `horocyclic_suffix` or `CandidateWord`, depending on which
-            # word the cancelable letters belong to.
+            # `horocyclic_suffix` or `candidate_word`, depending on 
+            # which word the cancelable letters belong to.
             # However, some of the letters of the canceling_word may 
             # have been prefix letters, and if so, writing them does not
             # change the suffix.
