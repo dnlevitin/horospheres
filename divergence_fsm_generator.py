@@ -119,10 +119,11 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
         # 1. w_3 is spelled with letters commuting with and preceding 
         #    a_j, and cannot be made to begin with a letter commuting
         #    a_i.
-        # 2. w_4 cannot be made to begin with a_i, a_j, or a letter
+        # 2. w_4 cannot be made to begin with a_j, or a letter
         #    commuting with and preceding a_j.
         # 3. w_3w_4, as a whole, cannot be rearranged to begin with a
-        #    letter commuting with both letters and preceding a_i
+        #    letter commuting with both letters and preceding a_i, or
+        #    to begin with a_i.
 
         w3_machine = self.shortlex_machine(
             self.lesser_star[self.ray[1]]).enhanced_intersection(
@@ -133,7 +134,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
         # w_4 depends on w_3 by condition 3 above.
         w4_machine_approx = self.shortlex_machine()\
             .enhanced_intersection(self.first_letter_excluder(
-                self.lesser_star[self.ray[1]].union(set(self.ray)))
+                self.lesser_star[self.ray[1]].union({self.ray[1]}))
             )
         
         w1_machine = self.horocyclic_suffix_machine_1()
@@ -143,10 +144,10 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
         restricted_alphabet = {self.ray[0]}.union(
             self.lesser_star[self.ray[0]].intersection(self.c_map[self.ray[1]]))
 
-        w3w4_machine = (w3_machine.unambiguous_concatenation(w4_machine_approx))\
+        w34_machine = (w3_machine.unambiguous_concatenation(w4_machine_approx))\
             .enhanced_intersection(self.first_letter_excluder(restricted_alphabet))
 
-        return w12_machine.unambiguous_concatenation(w3w4_machine)
+        return w12_machine.unambiguous_concatenation(w34_machine)
 
     def horocyclic_suffix_machine_1256(self) -> EnhancedAutomaton:
   
@@ -160,11 +161,13 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
 
         #w_5w_6 is a concattenation of shortlex words such that:
         # 1. w_5 is spelled with letters commuting with and preceding
-        #    a_i, and which do not commute with a_j.
-        # 2. w_6 cannot be made to begin with a_i, a_j, or a letter 
+        #    a_i, and cannot be made to begin with a letter commuting
+        #    a_j.
+        # 2. w_6 cannot be made to begin with a_i, or a letter 
         #    commuting with and preceding a_i.
         # 3. w_5w_6, as a whole, cannot be rearranged to begin with a
-        #    letter commuting with both a_i and a_j and preceding a_j.
+        #    letter commuting with both a_i and a_j and preceding a_j,
+        #    or to begin with a_j.
         
         w5_machine = self.shortlex_machine(
             self.lesser_star[self.ray[0]]).enhanced_intersection(
@@ -175,7 +178,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
         # w_6 depends on w_5 by condition 3 above.
         w6_machine_approx = self.shortlex_machine()\
         .enhanced_intersection(self.first_letter_excluder(
-            self.lesser_star[self.ray[0]].union(set(self.ray)))
+            self.lesser_star[self.ray[0]].union({self.ray[0]}))
             )
 
         w1_machine = self.horocyclic_suffix_machine_1()
@@ -184,10 +187,10 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
         
         restricted_alphabet = {self.ray[1]}.union(
             self.lesser_star[self.ray[1]].intersection(self.c_map[self.ray[0]]))
-        w5w6_machine = (w5_machine.unambiguous_concatenation(w6_machine_approx))\
+        w56_machine = (w5_machine.unambiguous_concatenation(w6_machine_approx))\
             .enhanced_intersection(self.first_letter_excluder(restricted_alphabet))
 
-        return w12_machine.unambiguous_concatenation(w5w6_machine)
+        return w12_machine.unambiguous_concatenation(w56_machine)
 
     #We will not use the even_horocyclic_suffix_machine or the
     # odd_horocyclic_suffix_machine in practice.
@@ -240,7 +243,8 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
 
         final_subword = max(subword_dict.values())
 
-        #First, we generate those states that have no uncancelable letters.
+        # First, we generate those states that have no uncancelable 
+        # letters.
         (states_without_uncancelables, new_transitions) = \
             self.generate_states_without_uncancelables(subword_dict)
 
@@ -398,7 +402,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
             # We can assume the two commute, or else we immediately 
             # reach a failure state.
             if w_letter not in self.c_map[v_letter]:
-                #This includes the case that `w_letter == v_letter`.
+                # This includes the case that `w_letter == v_letter`.
                 continue
  
             new_label = self._mutable_label(state_without_uncancelables)
@@ -417,17 +421,17 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
             adding_subword = new_label[10][int(new_bit)]
             canceling_letter = letter_pair[1-int(new_bit)]
             
-            # Add the adding_letter.
+            # Add the `adding_letter`.
             new_label[2*adding_subword -2].append(adding_letter)
-            # The adding_letter is the first letter of the relevant word.
-            # The other possible first letters are those that commute
-            # with it.
+            # The `adding_letter` is the first letter of the relevant 
+            # word. The other possible first letters are those that 
+            # commute with it.
             new_label[2*adding_subword -1].append(({adding_letter},
                                                    self.c_map[adding_letter]))
             
             # Since the `adding_letter` and the `canceling_letter` do 
-            # not equate, there is no need to check for cancelation. The
-            # canceling_letter automatically becomes uncancelable.
+            # not equate, there is no need to check for cancelation.
+            # `canceling_letter` automatically becomes uncancelable.
             new_label[8] = {canceling_letter}
             new_label[9].intersection_update(self.c_map[canceling_letter])
             
@@ -506,7 +510,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
                 # uncancelable. 
                 # This will create an uncancelable pair if any of them
                 # fail to cancel with one another or with 
-                #`canceling_letter`.
+                # `canceling_letter`.
                 #
                 # We also check whether there are any duplicates among 
                 # among the present letters.
@@ -533,7 +537,6 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
                 # `canceling_subword` and new `canceling_letter` 
                 # take the place that the new `adding_subword` and 
                 # `adding_letter` had.
-                
                 for i in range(0,4):
                     new_label[2*i] = self.word_generator_machine.word([])
                     new_label[2*i+1] = []
@@ -704,14 +707,16 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
 
         new_label = self._mutable_label(source_state)
         new_uncancelable_list = []
+        
+        # All subwords but the final one have ended, so no more
+        # cancelation is possible for them.
         for i in range (1, final_subword):
             new_uncancelable_list.extend(new_label[2*i-2].word_as_list)
             new_label[2*i-2] = self.word_generator_machine.word([])
             new_label[2*i-1] = []
         present_letters = set(new_label[2*final_subword - 2].word_as_list)
         new_uncancelables = set(new_uncancelable_list)
-        # If there are duplicate letters then there is an uncancelable
-        # pair.
+        # Check whether we have created an uncancelable pair.
         if len(new_uncancelable_list) > len(new_uncancelables):
             return(None)
         if not (self._test_set_commutation(new_uncancelables) \
