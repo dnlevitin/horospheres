@@ -350,20 +350,15 @@ class DivergenceHorosphereGenerator:
                 .process(elongated_word)[1]
             non_elongated_state = relevant_suffix_machine\
                 .process(non_elongated_word)[1]
+            if (elongated_state.label() is None) or (non_elongated_state.label() is None):
+                raise RuntimeError('The pair of words ', horocyclic_suffix.word_as_list,
+                                    current_candidate.word_as_list, 'created the elongated word',
+                                    elongated_word, 'which was not accepted by the suffix machine. The current state is ',
+                                    horocyclic_suffix.mode)
             
             # We will check whether any of these letters is permitted by 
             # both the above states.
             letters_commuting_with_clique = set(end_state.label()[9])
-            
-
-            # print('Processing pair ', horocyclic_suffix.subword_list, 
-            #       current_candidate.subword_list)
-            # print('The elongated word is ', elongated_word, 
-            #       ' and the non-elongated word is ', non_elongated_word)
-            # print('The state of the elongated word is ', 
-            #       elongated_state.label())
-            # print('Its outgoing transitions are ', 
-            # relevant_suffix_machine.transitions(elongated_state))
             
             # Recall that `transition.word_in` outputs a list containing
             # the label of the transition, not the label itself.

@@ -18,8 +18,8 @@ class RipsHorosphereGenerator:
         self.alphabet = set().union(letter for letter in self.o_map)
         self.ray = ray
         fsm_gen = RipsFSMGenerator(self.c_map, self.o_map, self.ray)
-        self.suffix_generator = fsm_gen.shortlex_suffix_machine
-        self.geodesic_suffix_machine = fsm_gen.geodesic_suffix_machine
+        self.suffix_generator = fsm_gen.shortlex_suffix_machine()
+        self.geodesic_suffix_machine = fsm_gen.geodesic_suffix_machine()
         self.ray_excluder = fsm_gen.first_letter_excluder(set(ray))
         self.word_gen = WordGenerator(self.c_map, self.o_map)
 
@@ -51,9 +51,11 @@ class RipsHorosphereGenerator:
 
             # Continue traversing.
             for transition in self.suffix_generator.iter_transitions(state):
-                frontier.append(
+                frontier.append((
                     transition.to_state, depth+1, 
-                    self.word_gen.word(word.word_as_list + transition.word_in))
+                    self.word_gen.word(word.word_as_list + transition.word_in)))
+
+        # print('There are ', len(words_out), 'entries in the list of suffixes')
 
         return words_out
 
@@ -81,22 +83,22 @@ class RipsHorosphereGenerator:
             (suffix.word_as_list)[1]
         adjacencies = []
         
-        for last_letter in geodesic_suffix_machine_state.label()[0]:
-
+        for last_letter in geodesic_suffix_machine_state.label()[0].label():
             # Remove the last instance of last_letter from the word.
             reversed_word = suffix.word_as_list[::-1]
-            deleted_word = (reversed_word[0:reversed_word.index(last_letter):]
-                            + reversed_word[reversed_word.index(last_letter)+1::])\
-                                [::-1]
-
+            deleted_word = self.word_gen.word(
+                (reversed_word[0:reversed_word.index(last_letter):]
+                    + reversed_word[reversed_word.index(last_letter)+1::])\
+                        [::-1]
+            )
             deleted_word_state = self.geodesic_suffix_machine.process\
                 (deleted_word.word_as_list)[1]
 
             # The valid letters are those that will not cancel, will not 
             # join the prefix, and are not last_letter itself.
             connecting_letters = self.alphabet.difference(
-                set(deleted_word_state.label()[0])\
-                .union(set(deleted_word_state.label()[1]))\
+                set(deleted_word_state.label()[0].label())\
+                .union(set(deleted_word_state.label()[1].label()))\
                 .union({last_letter})
                 )
 
@@ -130,13 +132,15 @@ class RipsHorosphereGenerator:
         geodesic_suffix_machine_state = self.geodesic_suffix_machine\
             .process(suffix.word_as_list)[1]
 
-        for last_letter in geodesic_suffix_machine_state.label()[0]:
+        for last_letter in geodesic_suffix_machine_state.label()[0].label():
 
             # Remove the last instance of last_letter from the word.
             reversed_word = suffix.word_as_list[::-1]
-            deleted_word = (reversed_word[0:reversed_word.index(last_letter):]
-                            + reversed_word[reversed_word.index(last_letter)+1::])\
-                                [::-1]
+            deleted_word = self.word_gen.word(
+                (reversed_word[0:reversed_word.index(last_letter):]
+                    + reversed_word[reversed_word.index(last_letter)+1::])\
+                        [::-1]
+            )
 
             #Check whether to keep this word.
             if self.ray[mode] in set(
@@ -179,8 +183,8 @@ class RipsHorosphereGenerator:
         edges = []
 
         for suffix in suffix_list:
-            edges.append((str(suffix), str(newsuffix)) for newsuffix in \
-                         self.calculate_rips_adjacencies(suffix, busemann_value))
+            edges.extend([(str(suffix), str(newsuffix)) for newsuffix in \
+                         self.calculate_rips_adjacencies(suffix, busemann_value)])
         return(edges)
         
     def horosphere_as_networkx(self, length: int, busemann_value: int):

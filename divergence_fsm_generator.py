@@ -115,9 +115,10 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
          words w_1w_2w_3w_4 as described in the paper.
         ''' 
 
-        #w_3w_4 is a concattenation of shortlex words such that:
+        # w_3w_4 is a concattenation of shortlex words such that:
         # 1. w_3 is spelled with letters commuting with and preceding 
-        #    a_j, and which do not commute with a_i.
+        #    a_j, and cannot be made to begin with a letter commuting
+        #    a_i.
         # 2. w_4 cannot be made to begin with a_i, a_j, or a letter
         #    commuting with and preceding a_j.
         # 3. w_3w_4, as a whole, cannot be rearranged to begin with a
@@ -127,7 +128,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
             self.lesser_star[self.ray[1]]).enhanced_intersection(
                 self.first_letter_excluder(self.c_map[self.ray[0]]))
 
-        #This machine is so-named because its language is not exactly 
+        # This machine is so-named because its language is not exactly 
         # the words w_4, since in fact whether a word is allowed to be
         # w_4 depends on w_3 by condition 3 above.
         w4_machine_approx = self.shortlex_machine()\
@@ -473,7 +474,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
 
             # Append the new letter to the relevant subword.
             new_label[2*adding_subword-2].append(adding_letter)
-            # Update the first leters.
+            # Update the first letters.
             for first_letters_set in new_label[2*adding_subword-1]:
                 if adding_letter in first_letters_set[1]:
                     first_letters_set[0].add(adding_letter)
@@ -488,13 +489,13 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
                 + new_label[6].word_as_list
             present_letters = set(present_letter_list)
             # Check whether the bit value needs to be flipped.
-            letters_following_bit_flip = copy.copy(self.alphabet)
+            letters_following_present_letters = copy.copy(self.alphabet)
             for letter in present_letters:
-                letters_following_bit_flip.intersection_update(
+                letters_following_present_letters.intersection_update(
                     self.greater_star[letter])
             bit_flip = ((canceling_subword > adding_subword) or \
                        ((canceling_subword == adding_subword) \
-                        and canceling_letter in letters_following_bit_flip)
+                        and canceling_letter in letters_following_present_letters)
                         )
             # `exor True`` is the same as `not`, while `exor False` 
             # does nothing.
@@ -626,7 +627,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
             # between the new uncancelables or with the remaining 
             # letters. In this case we will demand disjointness.
             if not (self._test_set_pair_commutation(
-                new_uncancelables, remaining_letters, all_distinct = True) 
+                new_uncancelables, remaining_letters, all_distinct=True) 
                 and self._test_set_commutation(new_uncancelables)):
                 return None
             # If there are no uncancelable pairs, then we get a new 
@@ -638,18 +639,50 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
             return label
         else:
             # If the canceling_letter does not cancel, then it joins the
-            # uncancelable set. We check whether this creates an 
-            # uncancelable pair.
-            new_uncancelables.add(canceling_letter)
+            # uncancelable set.
+            new_uncancelable_list.append(canceling_letter)
+            # Additionally, any cancelable letters commuting to the 
+            # start of the canceling word, and commuting with and 
+            # preceding `canceling_letter` become uncancelable.
+            if label[2*canceling_subword-1]:
+                truncation_index = max((label[2*canceling_subword-2].index(letter)\
+                                        for letter in self.lesser_star[
+                                            canceling_letter].intersection(
+                                            label[2*canceling_subword-1][0][0])),
+                                        default=None)
+                if truncation_index is not None:
+                    # These letters become uncancelable. 
+                    # It is possible that some letters that precede
+                    # `truncation_index` do not commute with and precede
+                    # `canceling_letter`. However, this can only happen
+                    # if we have created an uncancelable pair. So it
+                    # does not matter that we mark them as uncancelable,
+                    # since the subroutine will terminate by returning 
+                    # `None` regardless.
+                    new_uncancelable_list.extend(label[2*canceling_subword-2]\
+                                            [:truncation_index+1])
+                    # This is the remaining potentially cancelable word.
+                    label[2*canceling_subword-2] = self.word_generator_machine.word(
+                        label[2*canceling_subword-2][truncation_index+1:])
+                    label[2*canceling_subword-1] = label[2*canceling_subword-1]\
+                        [truncation_index+1:]
+                
+            # Update which letters are present.
             remaining_letters = set(label[0].word_as_list).union(
                 set(label[2].word_as_list), set(label[4].word_as_list), 
                 set(label[6].word_as_list))
+            # Check whether there are duplicate uncancellable letters.
+            new_uncancelables = set(new_uncancelable_list)
+            if len(new_uncancelable_list) > len(new_uncancelables):
+                return None
+            # Check whether there is an uncancellable pair, either 
+            # between the new uncancelables or with the remaining 
+            # letters. In this case we will demand disjointness.
             if not (self._test_set_pair_commutation(
-                new_uncancelables, remaining_letters, True) 
+                new_uncancelables, remaining_letters, all_distinct=True) 
                 and self._test_set_commutation(new_uncancelables)):
                 return None
-            # If there are no uncancelable pairs, 
-            # then we get a new transition.
+            # If there are no uncancelable pairs, then we get a new transition.
             for letter in new_uncancelables:
                 label[8].add(letter)
                 label[9].intersection_update(self.c_map[letter])

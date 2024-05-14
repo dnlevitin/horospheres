@@ -55,11 +55,11 @@ class EnhancedAutomaton(Automaton):
         for s in self.iter_states():
             new_state = s.relabeled((0, s.label()))
             first_states[s] = new_state
-            #Unlike in `Automaton.concatenation`, we allow
-            #these states to be final when the state they are copying is
-            #final. This means that each word w_1 in L_1 will again be 
-            #accepted by the result, without needing an epsilon 
-            #transition to a starting state of M_2
+            # Unlike in `Automaton.concatenation`, we allow
+            # these states to be final when the state they are copying is
+            # final. This means that each word w_1 in L_1 will again be 
+            # accepted by the result, without needing an epsilon 
+            # transition to a starting state of M_2.
 
         for s in other.iter_states():
             new_state = s.relabeled((1, s.label()))
@@ -85,10 +85,10 @@ class EnhancedAutomaton(Automaton):
         for s in self.iter_final_states():
             first_state = first_states[s]
             for t in other.iter_initial_states():
-                #Unlike in `Automaton.concatenation`, we create
-                #labeled transitions directly to those states in `other`
-                #that immediately follow initial states. 
-                #This avoids the creation of epsilon transitions.
+                # Unlike in `Automaton.concatenation`, we create
+                # labeled transitions directly to those states in `other`
+                # that immediately follow initial states. 
+                # This avoids the creation of epsilon transitions.
                 for transition in other.transitions(t):
                     new_transition = FSMTransition (first_state,
                                                    second_states[transition.to_state],
