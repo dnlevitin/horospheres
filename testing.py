@@ -100,8 +100,58 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(len(geodesic_suffix_machine.states()), 50)
         self.assertEqual(len(geodesic_suffix_machine.transitions()), 338)
 
+    def test_virtual_surface_rips_graph(self):
+        
+        """
+        Test that the rips graph on the virtual surface group has the
+        expected number of vertices and edges.
+        """
+
+        data = defining_data.VirtualSurfaceData()
+        horosphere_generator = RipsHorosphereGenerator(
+            data.c_map, data.o_map, data.ray)
+        
+        graph = horosphere_generator.horosphere_as_networkx(3, 0)
+        self.assertEqual(graph.number_of_nodes(), 29)
+        self.assertEqual(graph.number_of_edges(), 51)
+
+    def test_sierpinski_carpet_rips_graph(self):
+
+        """
+        Test that the rips graph on the virtual Sierpinski Carpet group
+        has the expected number of edges and vertices.
+        """
+
+        data = defining_data.SierpinskiCarpetData()
+        horosphere_generator = RipsHorosphereGenerator(
+            data.c_map, data.o_map, data.ray)
+        
+        graph = horosphere_generator.horosphere_as_networkx(2, 0)
+        self.assertEqual(graph.number_of_nodes(), 61)
+        self.assertEqual(graph.number_of_edges(), 292)
+
+    def test_theta_graph_rips_graph(self):
+
+        """
+        Test that the rips graph on the virtual branched surface group
+        has the expected number of edges and vertices.
+        """
+
+        data = defining_data.ThetaGraphData()
+        horosphere_generator = RipsHorosphereGenerator(
+            data.c_map, data.o_map, data.ray)
+        
+        graph = horosphere_generator.horosphere_as_networkx(3, 0)
+        self.assertEqual(graph.number_of_nodes(), 362)
+        self.assertEqual(graph.number_of_edges(), 1421)
 
     def test_virtual_surface_divergence_graph(self):
+       
+        """
+        Test that the divergence graph on the virtual surface group is 
+        a path as desired.
+        """
+
         data = defining_data.VirtualSurfaceData()
         horosphere_generator = DivergenceHorosphereGenerator(
             data.c_map, data.o_map, data.ray)
@@ -109,3 +159,11 @@ class BasicTestSuite(unittest.TestCase):
         graph = horosphere_generator.horosphere_as_networkx(3, 0)
         #This graph is supposed to be a path.
         self.assertEqual(graph.number_of_edges(), graph.number_of_nodes() - 1)
+        '''
+    def test_weird_group_divergence_graph(self):
+        data=defining_data.WeirdGroupData()
+        horosphere_generator = DivergenceHorosphereGenerator(
+            data.c_map, data.o_map, data.ray)
+
+        graph = horosphere_generator.horosphere_as_networkx(3, 0)
+        '''
