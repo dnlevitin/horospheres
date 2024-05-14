@@ -26,6 +26,16 @@ class VirtualSurfaceData:
         self.o_map = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4}
         self.ray = ('a', 'c')
 
+class AlmostVirtualSurfaceData:
+
+
+    def __init__(self):
+        self.c_map = {'a': {'b', 'c', 'f'}, 'b': {'a', 'c', 'f'}, 
+                      'c': {'a', 'b', 'd'}, 'd': {'e', 'c'}, 
+                      'e': {'d', 'f'}, 'f': {'a', 'b', 'e'}} 
+        self.o_map = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5}
+        self.ray = ('c', 'f')
+
 class WeirdGroupData:
 
 

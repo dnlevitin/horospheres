@@ -125,8 +125,8 @@ class RipsFSMGenerator:
     def shortlex_machine(self, restricted_alphabet=None) -> EnhancedAutomaton:
 
         """
-        Generate an FSM that prevents letters from being written that either
-         cancel or should have already been written. 
+        Generate an FSM that prevents letters from being written that 
+         either cancel or should have already been written. 
         The states of this automaton represent the list of letters that
         a word cannot be followed by if it is to remain shortlex.
 

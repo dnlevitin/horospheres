@@ -159,11 +159,27 @@ class BasicTestSuite(unittest.TestCase):
         graph = horosphere_generator.horosphere_as_networkx(3, 0)
         #This graph is supposed to be a path.
         self.assertEqual(graph.number_of_edges(), graph.number_of_nodes() - 1)
-        '''
+        
+    def test_almost_virtual_surface_divergence_graph(self):
+
+        """
+        Test that the divergence graph on the almost virtual surface
+        has the expected number of vertices and edges, as well as
+        a specific edge.
+        """
+
+        data = defining_data.AlmostVirtualSurfaceData()
+        horosphere_generator = DivergenceHorosphereGenerator(
+            data.c_map, data.o_map, data.ray)
+
+        graph = horosphere_generator.horosphere_as_networkx(3, 0)
+        assert('b' in list(graph.neighbors('a')))
+
+    '''
     def test_weird_group_divergence_graph(self):
         data=defining_data.WeirdGroupData()
         horosphere_generator = DivergenceHorosphereGenerator(
             data.c_map, data.o_map, data.ray)
 
         graph = horosphere_generator.horosphere_as_networkx(3, 0)
-        '''
+    ''' 

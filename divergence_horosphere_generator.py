@@ -1,11 +1,8 @@
 from sage.combinat.finite_state_machine import FSMState
 from sage.graphs.graph import Graph
 import networkx as nx
-import matplotlib.pyplot as plt
 import copy
 from words import WordGenerator, HorocyclicWord
-from enhanced_automaton import EnhancedAutomaton
-from rips_fsm_generator import RipsFSMGenerator
 from divergence_fsm_generator import DivergenceFSMGenerator
 
 
@@ -147,7 +144,7 @@ class DivergenceHorosphereGenerator:
         #The Theta graph case throws an IndexError here. the machine does not have any initial states.
         frontier.append((even_length_generator.initial_states()[0], 0, new_word))
         
-        #Edge case: `n==0`
+        # Edge case: `n==0`.
         if n == 0:
             return horocyclic_suffix_list
 
@@ -158,27 +155,29 @@ class DivergenceHorosphereGenerator:
                 # If `next_state_label[0]` is `1`, that means that the 
                 # letter is not in w_1 or w_2. In particular, the label
                 # is of the form 
-                # `(1,((int, SubwordState),(LetterExcluderState)))`,
+                # `(1,((int, subword_state),(letter_excluder_state)))`,
                 # where `int` is `0` for the third subword or `1` for
                 # the fourth.
                 subword_list = [[], [], [], []]
-                #recall that transition.word_in returns a singleton list.
+                # Recall that `transition.word_in` returns a singleton
+                # list.
                 subword_list[2+next_state_label[1][0].label()[0]] = \
                     [transition.word_in[0]]
             else:
                 # If `next_state_label[0]` is `0`, that means that the 
                 # letter is in w_1 or w_2.
                 # In particular, the label is of the form 
-                # `(0,(int,SubwordState))` where `int` is `0 `for the
+                # `(0,(int,subword_state))` where `int` is `0 `for the
                 # first subword or `1` for the second.
                 subword_list = [[], [], [], []]
-                #recall that transition.word_in returns a singleton list.
+                # Recall that transition.word_in returns a singleton
+                # list.
                 subword_list[next_state_label[1][0]] = [transition.word_in[0]]
             new_word = self.word_gen.horocyclic_word(subword_list, not mode)
             horocyclic_suffix_list.append(new_word)
             frontier.append((transition.to_state, 1, new_word))
 
-        #We will lengthen words 2 letters at a time.
+        # We will lengthen words 2 letters at a time.
         while frontier:
             state, depth, word = frontier.pop(0)
             if depth > n-2:
@@ -327,6 +326,79 @@ class DivergenceHorosphereGenerator:
             # described in Proposition 5.2.10.
 
             canceling_word = end_state.label()[6]
+            
+            # These words have shortlex states equivalent to those of
+            # the full words corresponding to `horocyclic_suffix` and
+            # `current_candidate`.
+            if horocyclic_suffix.mode:
+                horocyclic_word_equivalent = horocyclic_suffix[0]\
+                        + [self.ray[1]] + horocyclic_suffix[1] + [self.ray[0]]\
+                        + horocyclic_suffix[2] + [self.ray[1]]\
+                        + horocyclic_suffix[3]
+                current_candidate_equivalent = current_candidate[0]\
+                        + [self.ray[1]] + current_candidate[1]+ [self.ray[0]]\
+                        + current_candidate[2] + [self.ray[1]]\
+                        + current_candidate[3]
+            else:
+                horocyclic_word_equivalent = horocyclic_suffix[0]\
+                        + [self.ray[1]] + horocyclic_suffix[1] + [self.ray[0], 
+                                                                  self.ray[1]]\
+                        + horocyclic_suffix[2] + [self.ray[0]]\
+                        + horocyclic_suffix[3]
+                current_candidate_equivalent = current_candidate[0]\
+                        + [self.ray[1]] + current_candidate[1]+ [self.ray[0], 
+                                                                 self.ray[1]]\
+                        + current_candidate[2] + [self.ray[0]]\
+                        + current_candidate[3]
+                
+            
+            # If the cancelable letters were part of the second word 
+            # `current_candidate` then it is the first word 
+            # `horocyclic_suffix` that needs to be elongated to achieve
+            # full cancelation.
+            if end_state.label()[11]:
+                horocyclic_word_equivalent = horocyclic_word_equivalent\
+                    + list(canceling_word)
+            # Otherwise, it is current_candidate that needs to be 
+            # elongated.
+            else:
+                current_candidate_equivalent = current_candidate_equivalent\
+                    + list(canceling_word)
+                
+            horocyclic_word_state = self.shortlex_machine.process(
+                horocyclic_word_equivalent)[1]
+            current_candidate_state = self.shortlex_machine.process(
+                current_candidate_equivalent)[1]
+            
+            if horocyclic_word_state.label() is None or \
+              current_candidate_state.label() is None:
+                raise RuntimeError('The pair of words ', 
+                                   horocyclic_suffix.word_as_list,
+                                   current_candidate.word_as_list,
+                                   'created an elongated word that was\
+                                    not accepted by the shortlex machine.\
+                                    The mode is ', horocyclic_suffix.mode)
+            
+            letters_commuting_with_clique = set(end_state.label()[9])
+            letters_accepted_from_horocyclic_word = self.alphabet.difference(
+                set(horocyclic_word_state.label()))
+            letters_accepted_from_current_candidate = self.alphabet.difference(
+                set(current_candidate_state.label()))
+            
+            # Check whether there is a pair of letters commuting with
+            # clique, not commuting with one another, and one of the pair
+            # permitted by both words. This is the condition that there
+            # is an edge between the two in the divergence graph.
+            for letter in letters_commuting_with_clique:
+                if letter in letters_accepted_from_horocyclic_word.intersection(
+                  letters_accepted_from_current_candidate) \
+                  and letters_commuting_with_clique.difference(
+                  self.c_map[letter].union({letter})) != set():
+                    adjacencies.append(current_candidate)
+                    break
+            finished_words.append(current_candidate)
+
+            '''
             # If the cancelable letters were part of the second word 
             # `current_candidate` then it is the first word 
             # `horocyclic_suffix` that needs to be elongated to achieve
@@ -377,7 +449,7 @@ class DivergenceHorosphereGenerator:
                     adjacencies.append(current_candidate)
                     break
             finished_words.append(current_candidate)
-                    
+            '''
         return adjacencies
 
     def calculate_shorter_divergence_adjacencies(self, horocyclic_suffix\
@@ -900,3 +972,4 @@ class DivergenceHorosphereGenerator:
         for letter in allowable_set:
             n = max(n, self._determine_clique_dimension_recursive(running_total+1, allowable_set.intersection(self.c_map[letter])))
         return(n)
+    
