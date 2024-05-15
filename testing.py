@@ -165,7 +165,7 @@ class BasicTestSuite(unittest.TestCase):
         """
         Test that the divergence graph on the almost virtual surface
         has the expected number of vertices and edges, as well as
-        a specific edge.
+        certain specific edges.
         """
 
         data = defining_data.AlmostVirtualSurfaceData()
@@ -174,15 +174,14 @@ class BasicTestSuite(unittest.TestCase):
 
         graph = horosphere_generator.horosphere_as_networkx(3, 0)
         assert('b' in list(graph.neighbors('a')))
+        assert('ab' in list(graph.neighbors('')))
+        assert('dab' in list(graph.neighbors('dfc')))
         self.assertEqual(graph.number_of_nodes(), 55)
-        print(list(graph.edges()))
         self.assertEqual(graph.number_of_edges(), 76)
 
-    '''
     def test_weird_group_divergence_graph(self):
         data=defining_data.WeirdGroupData()
         horosphere_generator = DivergenceHorosphereGenerator(
             data.c_map, data.o_map, data.ray)
 
-        graph = horosphere_generator.horosphere_as_networkx(3, 0)
-    ''' 
+        graph = horosphere_generator.horosphere_as_networkx(2, 0)
