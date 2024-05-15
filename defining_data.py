@@ -2,6 +2,12 @@
 class SierpinskiCarpetData:
     
 
+    """
+    This data defines a RACG that is virtually the fundamental group
+    of a 3-manifold group with boundary. The boundary of this group, and
+    therefore the horospheres, should look like a Sierpinski Carpet.
+    """
+
     def __init__(self):
 
         self.c_map = {
@@ -20,6 +26,13 @@ class SierpinskiCarpetData:
 class VirtualSurfaceData:
 
 
+    """
+    This data defines a RACG that is virtually the fundamental group
+    of a hyperbolic surface. The boundary of this group, and therefore
+    the horosphere, should look like a circle minus a point, i.e. a line.
+    See `testing.BasicTestSuite.test_virtual_surface_divergence_graph`.
+    """
+
     def __init__(self):
         self.c_map = {'a': {'b', 'e'}, 'b': {'a', 'c'}, 'c': {'b', 'd'}, 
                       'd': {'e', 'c'}, 'e': {'a', 'd'}}
@@ -28,6 +41,14 @@ class VirtualSurfaceData:
 
 class AlmostVirtualSurfaceData:
 
+
+    """
+    This data defines a RACG for some sort of branched surface. This
+    case is chosen because the divergence graph with this defining data
+    should have edges between points at distance 4 apart, including
+    between suffixes whose length differs by more than 1.
+    See `testing.BasicTestSuite.test_almost_virtual_surface_divergence_graph`.
+    """
 
     def __init__(self):
         self.c_map = {'a': {'b', 'c', 'f'}, 'b': {'a', 'c', 'f'}, 
@@ -38,6 +59,14 @@ class AlmostVirtualSurfaceData:
 
 class WeirdGroupData:
 
+
+    """
+    This data defines a RACG that I do not understand at all. This is
+    chosen because the divergence graph with this defining data should
+    fail to have edges between certain points that differ by a pair of
+    commuting letters.
+    See `testing.BasicTestSuite.test_weird_group_divergence_graph`.
+    """
 
     def __init__(self):
         self.c_map = {
@@ -54,6 +83,12 @@ class WeirdGroupData:
 
 class ThetaGraphData:
 
+
+    """
+    This data defines a RACG that is virtually the fundamental group of
+    a hyperbolic surface amalgam in the sense of Stark 2017 (see also
+    LaFont 2007).
+    """
 
     def __init__(self):
         self.o_map = {'a': 0, 'b': 2, 'c': 1, 'd': 3,'e': 4, 'f': 5, 

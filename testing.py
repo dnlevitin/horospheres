@@ -164,7 +164,7 @@ class BasicTestSuite(unittest.TestCase):
 
         """
         Test that the divergence graph on the almost virtual surface
-        has the expected number of vertices and edges, as well as
+        group has the expected number of vertices and edges, as well as
         certain specific edges.
         """
 
@@ -174,14 +174,32 @@ class BasicTestSuite(unittest.TestCase):
 
         graph = horosphere_generator.horosphere_as_networkx(3, 0)
         assert('b' in list(graph.neighbors('a')))
+        # Check a lengthening by 2
         assert('ab' in list(graph.neighbors('')))
+        # Check an edge between words 4 letters apart
         assert('dab' in list(graph.neighbors('dfc')))
         self.assertEqual(graph.number_of_nodes(), 55)
         self.assertEqual(graph.number_of_edges(), 76)
 
     def test_weird_group_divergence_graph(self):
+
+        """
+        Test that the divergence graph on the weird group has the
+        expected number of vertices and edges, and that certain edges
+        are not present even though the words differ by a pair of
+        commuting letters.
+        """
+
         data=defining_data.WeirdGroupData()
         horosphere_generator = DivergenceHorosphereGenerator(
             data.c_map, data.o_map, data.ray)
 
         graph = horosphere_generator.horosphere_as_networkx(2, 0)
+        # Check the absence of certain edges even when the pairs of
+        # words differ by a pair of commuting letters
+        assert(not 'hz' in list(graph.neighbors('he')))
+        assert(not 'b' in list(graph.neighbors('bd')))
+        assert(not 'e' in list(graph.neighbors('c')))
+        assert(not 'd' in list(graph.neighbors('e')))
+        self.assertEqual(graph.number_of_nodes(), 49)
+        self.assertEqual(graph.number_of_edges(), 69)
