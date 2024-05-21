@@ -858,7 +858,7 @@ class DivergenceHorosphereGenerator:
         
         if step_count < 0:
             raise ValueError('Cannot go a negative number of steps forward.\
-                Use the _backtracking_recursive function to go backwards.')
+                Use the `_backtracking_recursive` function to go backwards.')
         
         resulting_words = []  
         

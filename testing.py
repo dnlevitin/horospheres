@@ -145,6 +145,24 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(graph.number_of_nodes(), 362)
         self.assertEqual(graph.number_of_edges(), 1421)
 
+    def test_theta_graph_divergence_graph(self):
+
+        """
+        Test that the divergence graph on the virtual branched surface
+        group has the expected number of vertices and edges.
+        """
+
+        data = defining_data.ThetaGraphData()
+        horosphere_generator = DivergenceHorosphereGenerator(
+            data.c_map, data.o_map, data.ray)
+        
+        graph = horosphere_generator.horosphere_as_networkx(3, 0)
+        self.assertEqual(graph.number_of_nodes(), 362)
+        self.assertEqual(graph.number_of_edges(), 401)
+        graph = horosphere_generator.horosphere_as_networkx(2, 0)
+        self.assertEqual(graph.number_of_nodes(), 54)
+        self.assertEqual(graph.number_of_edges(), 57)
+
     def test_virtual_surface_divergence_graph(self):
        
         """

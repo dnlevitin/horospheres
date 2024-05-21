@@ -659,9 +659,9 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
                     # `truncation_index` do not commute with and precede
                     # `canceling_letter`. However, this can only happen
                     # if we have created an uncancelable pair. So it
-                    # does not matter that we mark them as uncancelable,
-                    # since the subroutine will terminate by returning 
-                    # `None` regardless.
+                    # does not matter that we mark (incorrectly) as
+                    # uncancelable here, since the subroutine will
+                    # terminate by returning `None` regardless.
                     new_uncancelable_list.extend(label[2*canceling_subword-2]\
                                             [:truncation_index+1])
                     # This is the remaining potentially cancelable word.
