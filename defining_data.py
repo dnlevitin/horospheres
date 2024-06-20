@@ -86,8 +86,8 @@ class ThetaGraphData:
 
     """
     This data defines a RACG that is virtually the fundamental group of
-    a hyperbolic surface amalgam in the sense of Stark 2017 (see also
-    LaFont 2007).
+    a hyperbolic surface amalgam in the sense of Stark 2017,
+    and Dani-Stark-Thomas 2018 (see also LaFont 2007).
     """
 
     def __init__(self):
@@ -100,3 +100,27 @@ class ThetaGraphData:
             }
         
         self.ray = ('a', 'd')
+
+class PontryaginSphereData:
+
+    def __init__(self):
+        self.o_map = {'a': 0, 'b': 1, 'c': 2, 'd': 3,'e': 4, 'f': 5, 'g': 6, 
+                      'h': 7, 'i': 8, 'j': 9, 'k': 10, 'l': 11, 'm': 12, 'n': 13,
+                      'o': 14, 'p': 15, 'q': 16, 'r': 17, 's': 18, 't': 19,
+                      'u': 20}
+        self.c_map = {
+            'a': {'b', 'g', 'h', 'i', 's', 't'}, 'b': {'a', 'c', 'i', 'j', 't', 'u'}, 
+            'c': {'b', 'd', 'j', 'k', 'u', 'o'}, 'd': {'c', 'e', 'k', 'l', 'o', 'p'},
+            'e': {'d', 'f', 'l', 'm', 'p', 'q'}, 'f': {'e', 'g', 'm', 'n', 'q', 'r'}, 
+            'g': {'f', 'a', 'n', 'h', 'r', 's'},
+            'h': {'i', 'n', 'a', 'g', 'o', 'p'}, 'i': {'h', 'j', 'a', 'b', 'p', 'q'}, 
+            'j': {'i', 'k', 'b', 'c', 'q', 'r'}, 'k': {'j', 'l', 'c', 'd', 'r', 's'},
+            'l': {'k', 'm', 'd', 'e', 's', 't'}, 'm': {'l', 'n', 'e', 'f', 't', 'u'}, 
+            'n': {'m', 'h', 'f', 'g', 'u', 'o'},
+            'o': {'p', 'u', 'h', 'n', 'c', 'd'}, 'p': {'o', 'q', 'h', 'i', 'd', 'e'},
+            'q': {'p', 'r', 'i', 'j', 'e', 'f'}, 'r': {'q', 's', 'j', 'k', 'f', 'g'},
+            's': {'r', 't', 'k', 'l', 'g', 'a'}, 't': {'s', 'u', 'l', 'm', 'a', 'b'}, 
+            'u': {'t', 'o', 'm', 'n', 'b', 'c'} 
+            }
+        
+        self.ray = ('a', 'c')

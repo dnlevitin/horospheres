@@ -1,4 +1,4 @@
-from sage.combinat.finite_state_machine import FSMState, FSMTransition
+from sage.combinat.finite_state_machine import FSMState
 from enhanced_automaton import EnhancedAutomaton
 
 class RipsFSMGenerator:
