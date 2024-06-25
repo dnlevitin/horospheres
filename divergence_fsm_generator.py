@@ -247,13 +247,11 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
         # letters.
         (states_without_uncancelables, new_transitions) = \
             self.generate_states_without_uncancelables(subword_dict)
-
-        # print('Completed the uncancelable states. There are ', len(states_without_uncancelables), ' of them.')
         
         non_final_states.extend(states_without_uncancelables)
         total_transitions.extend(new_transitions)
         
-        #Then, we generate their immediate successors.
+        # Then, we generate their immediate successors.
         for state_without_uncancelables in states_without_uncancelables:
             (new_states, new_transitions) = \
                 self.generate_first_noncanceling_transitions(
@@ -262,9 +260,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
             total_transitions.extend(new_transitions)
             finished_states.append(state_without_uncancelables)
 
-        # print('Completed the first batch of transitions. There are ', len(total_transitions), 'transitions and ', len(set(non_final_states)), ' states in total')
-        
-        #Run a BFS to find the remaining non-final states.
+        # Run a BFS to find the remaining non-final states.
         while non_final_states:
             source_state = non_final_states.pop(0)
             if source_state in finished_states:
@@ -277,9 +273,7 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
             total_transitions.extend(new_transitions)
             finished_states.append(source_state)
 
-        # print('Completed the nonterminal transitions. There are ', len(total_transitions), ' transitions and ', len(set(finished_states)), ' states in total')
-        
-        #Finally, we add transitions processing the `('-','-')` input.
+        # Finally, we add transitions processing the `('-','-')` input.
         for source_state in finished_states:
             try:
                 (final_state, final_transition) = \
@@ -290,8 +284,6 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
             final_states.append(final_state)
             total_transitions.append(final_transition)
 
-        # print('completed the final transitions. There are ', len(total_transitions), 'transitions and ', len(set(final_states)), ' final states in total')
-        
         initial_state_label = ( (), (), (),  (), (), (), (), (), (),
                                 tuple(self.alphabet), (1, 1), True )
         return Automaton(total_transitions, [initial_state_label], final_states)
@@ -830,251 +822,3 @@ class DivergenceFSMGenerator(RipsFSMGenerator):
                                       ):
                 return(False)
         return(True)
-
-    '''
-    For the case where the words are different length, we will need one more subroutine. Since the words are of different lengths, we will assume the first input w is the shorter word.
-    Then we will pad the input so that w ends with 2 blank characters '-' so that w-- and v_1v_2v_3 self.ray[1] v_4 (or v_1v_2v_5 self.ray[0] v_6) are the same length
-    Therefore, we give a subroutine to process input pairs ('-', letter).
-    '''
-
-    #This is not used below. I'm keeping it around just in case I need it.
-    def horocyclic_edge_checker_different_length(self) -> Automaton:
-        '''
-        This machine will check whether there is an uncancelable pair between two horocyclic suffixes of length differing by 1. The first input is w and the second is v.
-        v_3 or v_5, depending on the form of v, is necessarily empty to have such an edge. However, this machine will not check this fact explicitly.
-        The inputs will be pairs (w_letter, v_letter) or the pair ('-', '-'). The latter denotes the end of the word.
-        
-        The subroutines generate_states_without_uncancelables, generate_first_noncanceling_transitions, get_nonterminal_transitions,
-        and get_single_blank_transition will all be defined later.
-        
-        :return: an Automaton which accepts pairs (w_1w_2w_3self.ray[1]w_4-, v_1v_2 v_6-) and (w_1w_2w_4 self.ray[0]w_6-, v_1v_2 v_4-) such that the lengths of each word are equal and there is no uncancelable pair
-        '''
-
-        #if not (mode == '1234' or mode == '1256'):
-            #raise ValueError(''' The mode should be either '1234' or '1256' ''')
-
-        #This dictionary keeps track of the necessary changes to the parameters n_v and n_w
-        subword_dict = {}
-        #The letters that commute with and precede both ray letters appear first in w_1
-        for letter in self.c_map[self.ray[0]].intersection(self.lesser_star[self.ray[1]]):
-            subword_dict[letter] = 1
-        #The letters that commute with both ray letters and precede only the first appear first in w_2
-        for letter in self.lesser_star[self.ray[0]].intersection(self.greater_star[self.ray[1]]):
-            subword_dict[letter] = 2
-        #Every other letter appears in one of the last two subwords, and these are all lumped into a single case.
-        for letter in self.alphabet:
-            try:
-                subword_dict[letter]
-            except KeyError:
-                subword_dict[letter] = 3
-
-        non_final_states = []
-        Prefinal_states = []
-        final_states = []
-        total_transitions = []
-        finished_states = []
-
-        #The beginning of this machine is the same as the previous one. All that needs to change is that we need to check that there are precisely two input pairs ('-', 'letter').
-        #Because of these two blank characters at the end of the word w, there is no need for an input ('-', '-') to indicate that the word has ended.
-        
-        (states_without_uncancelables, new_transitions) = self.generate_states_without_uncancelables(subword_dict)
-
-        print('Completed the uncancelable states. There are ', len(states_without_uncancelables), ' of them.')
-        
-        non_final_states.extend(states_without_uncancelables)
-        total_transitions.extend(new_transitions)
-        
-        for state_without_uncancelables in states_without_uncancelables:
-            (new_states, new_transitions) = self.generate_first_noncanceling_transitions(state_without_uncancelables,subword_dict)
-            non_final_states.extend(new_states)
-            total_transitions.extend(new_transitions)
-            finished_states.append(state_without_uncancelables)
-
-        print('Completed the first batch of transitions. There are ', len(total_transitions), 'transitions and ', len(non_final_states), ' states in total')
-        
-        while len(non_final_states) > 0:
-            source_state = non_final_states.pop(0)
-            if source_state in finished_states:
-                continue
-
-            (new_states, new_transitions) = self.get_nonterminal_transitions(source_state, subword_dict)
-            non_final_states.extend(new_states)
-            total_transitions.extend(new_transitions)
-            finished_states.append(source_state)
-
-        print('Completed the nonterminal transitions. There are ', len(total_transitions), ' transitions and ', len(set(finished_states)), ' states in total')
-        
-        for source_state in set(finished_states):
-            for letter in source_state.label()[9]:
-                holder = self.get_single_blank_transition(source_state, letter, subword_dict)
-                if holder is None:
-                    continue
-                (Prefinal_state, Prefinal_transition) = holder
-                Prefinal_states.append(Prefinal_state)
-                total_transitions.append(Prefinal_transition)
-
-        print('Completed the first set of blank transitions. There are ', len(total_transitions), 'transitions and ', len(set(Prefinal_states)), ' pre-final states in total')
-
-        for source_state in set(Prefinal_states):
-            for letter in source_state.label()[9]:
-                holder = self.get_single_blank_transition(source_state, letter, subword_dict)
-                if holder is None:
-                    continue
-                (final_state, final_transition) = holder
-                final_states.append(final_state)
-                total_transitions.append(final_transition)
-
-        print('Completed the second set of blank transitions. There are ', len(total_transitions), 'transitions and ', len(set(final_states)), ' final states in total')
-        
-        return Automaton(total_transitions)
-        
-
-    def get_single_blank_transition(self, source_state: FSMState, InputLetter: str, subword_dict: dict[str:int]) -> tuple:
-        '''
-        This method takes a source_state and returns the result of a transition labeled ('-', 'InputLetter').
-    
-        :param source_state: an instance of FSMState of the above form.
-        :param InputLetter: The input letter of the subword v. This may be canceling or adding.
-        :param subword_dict: A dictionary whose keys are letters and whose values are the first subword that letter appears in.
-    
-        :return: a pair (new_state, new_transition) if the input ('-', InputLetter) does not create an uncancelable pair. 
-        new_transition is an instance of FSMTransition whose from_state is source_state and whose to_state is new_state.
-        If an uncancelable pair is created, this method returns None.
-        '''
-        
-        new_label = self._mutable_label(source_state.label())
-        new_uncancelable_list = []
-    
-    
-        #Subwords w_1 and w_2 have ended.
-        new_n_v = max(new_label[10][1], subword_dict[InputLetter])
-        new_label[10] = (3, new_n_v)
-        
-        #We will process this input in two cases depending on whether InputLetter is adding or cancelling. The adding case is easiest.
-    
-        if new_label[11]:
-            new_label[2*new_n_v-2].append(InputLetter)
-            for first_letters_set in new_label[2*new_n_v-1]:
-                if InputLetter in first_letters_set[1]:
-                    first_letters_set[0].add(InputLetter)
-                first_letters_set[1].intersection_update(self.c_map[InputLetter])
-            new_label[2*new_n_v-1].append( ({InputLetter},self.c_map[InputLetter]) )
-            
-        #We get a  bit flip in this case if NV < 3. 
-            if new_n_v < 3:
-                new_label[11] = False
-                present_letter_list = new_label[0].word_as_list + new_label[2].word_as_list + new_label[4].word_as_list
-                present_letters = set(present_letter_list)
-                #Every previously cancelable letter will become uncancelable. 
-                #This will create an uncancelable pair if any of them fail to cancel with one another or with the canceling_letter.
-                #We also check whether there are any duplicates among the present_letters.
-                if len(present_letter_list)>len(present_letters) or ( not self._test_set_commutation(present_letters)):
-                    return(None)
-                
-                #Add every remaining cancelable letter into the uncancelable set
-                new_label[8]=new_label[8].union(present_letters)
-                for letter in present_letters:
-                    new_label[9].intersection_update(self.c_map[letter])
-            
-                #Delete every previously cancelable letter, which appear only in v_1 and v_2
-                for i in range(0,3):
-                    new_label[2*i] = self.word_generator_machine.word([])
-                    new_label[2*i+1] = []
-                #The 12th entry of new_state.label() will count the number of ending transitions that have elapsed.
-                try:
-                    new_label[12] += 1
-                except IndexError:
-                    new_label.append(1)
-                new_state = FSMState(self._hashable_label(new_label), is_final = (new_label[12] == 2))
-                new_transition = FSMTransition(source_state, new_state, ('-', InputLetter))
-                
-                
-                return(new_state, new_transition)
-    
-            #if the bit has not flipped, there is nothing left to do.
-            try:
-                new_label[12] += 1
-            except IndexError:
-                new_label.append(1)
-            new_state = FSMState(self._hashable_label(new_label), is_final = (new_label[12] == 2))
-            new_transition = FSMTransition(source_state, new_state, ('-', InputLetter))
-            return (new_state, new_transition)
-
-        #If the InputLetter is canceling, then the increase of NV may have created new uncancelable letters.
-        new_uncancelable_list = []
-        for i in range (0, new_n_v-1):
-            new_uncancelable_list.extend(new_label[2*i].word_as_list)
-            new_label[2*i] = self.word_generator_machine.word([])
-            new_label[2*i+1] = []
-
-        new_uncancelableset = set(new_uncancelable_list)
-        Remainingletter_list = new_label[0].word_as_list + new_label[2].word_as_list + new_label[4].word_as_list
-        remaining_letter_set = set(Remainingletter_list)
-
-        #Check if this creates an uncancelable pair.
-
-        if (len(new_uncancelable_list) > len(new_uncancelableset)) or ( not self._test_set_commutation(new_uncancelableset)) or ( not self._test_set_pair_commutation (new_uncancelableset, remaining_letter_set, True) ):
-            return(None)
-
-        #If there is no uncancelable pair, it is also possible to create a bit flip. It is not possible for n_v to be greater than 3, and the InputLetter is a letter of v.
-        #Therefore, we only check if the InputLetter commutes with and follows every RemainingLetter.
-        
-        LettersFollowingAllremaining_letters = copy.copy(self.alphabet)
-        for letter in remaining_letter_set:
-            LettersFollowingAllremaining_letters.intersection_update(self.greater_star[letter])
-        
-        if InputLetter in LettersFollowingAllremaining_letters:
-            #Every RemainingLetter will become uncancelable. Check whether this creates an uncancelable pair.
-            if (len(Remainingletter_list) > len(remaining_letter_set) or not self._test_set_commutation(remaining_letter_set)):
-                return(None)
-            
-            new_label[8] = new_label[8].union(remaining_letter_set)
-            for letter in remaining_letter_set:
-                    new_label[9].intersection_update(self.c_map[letter])
-            for i in range(0,4):
-                new_label[2*i] = self.word_generator_machine.word([])
-                new_label[2*i+1] = []
-                
-            #the InputLetter becomes the only cancelable letter if it is in subword 3. Otherwise it becomes uncancelable as well.
-            
-            if new_n_v == 3:
-                new_label[4] = self.word_generator_machine.word([InputLetter])
-                new_label[5].append(({InputLetter}, self.c_map[InputLetter]))
-                new_label[11] = True
-
-                try:
-                    new_label[12] += 1
-                except IndexError:
-                    new_label.append(1)
-                new_state = FSMState(self._hashable_label(new_label), is_final = (new_label[12] == 2))
-                new_transition = FSMTransition(source_state, new_state, ('-',InputLetter))
-                return (new_state, new_transition)
-
-            #The InputLetter becomes uncancellable. We know already that it commutes with every other letter.
-            new_label[8].add(InputLetter)
-            new_label[9].intersection_update(self.c_map[InputLetter])
-            try:
-                new_label[12] += 1
-            except IndexError:
-                new_label.append(1)
-            new_state = FSMState(self._hashable_label(new_label), is_final = (new_label[12] == 2))
-            new_transition = FSMTransition(source_state, new_state, ('-',InputLetter))
-            return (new_state, new_transition)
-
-        #If the bit has not flipped, then we process the InputLetter as a canceling letter.
-        new_label = self.process_canceling_letter(new_label, InputLetter, subword_dict)
-        if new_label is None:
-            return (None)
-        try:
-            new_label[12] += 1
-        except IndexError:
-            new_label.append(1)
-        new_state = FSMState(self._hashable_label(new_label), is_final = (new_label[12] == 2))
-        new_transition = FSMTransition(source_state, new_state, ('-',InputLetter))
-        return (new_state, new_transition)
-
-    
-       
-        
-
-    

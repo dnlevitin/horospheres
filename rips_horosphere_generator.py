@@ -54,9 +54,6 @@ class RipsHorosphereGenerator:
                 frontier.append((
                     transition.to_state, depth+1, 
                     self.word_gen.word(word.word_as_list + transition.word_in)))
-
-        # print('There are ', len(words_out), 'entries in the list of suffixes')
-
         return words_out
 
     def calculate_same_length_rips_adjacencies(self, suffix:Word) -> list:
@@ -124,8 +121,8 @@ class RipsHorosphereGenerator:
 
         adjacencies = []
 
-        #Edge case: suffixes of length 0.
-        #There are no suffixes of negative length.
+        # Edge case: suffixes of length 0.
+        # There are no suffixes of negative length.
         if len(suffix) == 0:
             return adjacencies
 
@@ -142,7 +139,7 @@ class RipsHorosphereGenerator:
                         [::-1]
             )
 
-            #Check whether to keep this word.
+            # Check whether to keep this word.
             if self.ray[mode] in set(
               self.ray_excluder.process(deleted_word.word_as_list)[1].label()):
                 adjacencies.append(deleted_word)
@@ -199,11 +196,8 @@ class RipsHorosphereGenerator:
         '''
 
         suffixes = self.get_all_length_n_suffixes(length)
-        #print(f"Suffixes of length {length} calculated: \n\t\t {len(suffixes)} words found")
         edges = self.calculate_horosphere_edges(suffixes, busemann_value)
-        #print(f"Words processing completed: \n\t\t {len(suffixes)} words processed")
 
         graph = nx.Graph()
         graph.add_edges_from(edges)
-        #print(f"Length {length} Horosphere generated: \n\t\t {graph}")
         return graph

@@ -101,8 +101,7 @@ class RipsFSMGenerator:
                 state_list.append(next_name)
             frontier.append(next_name)
             
-        #Find further states by a BFS
-        
+        # Find further states by a BFS
         finished_states = [start_state_name]
         while frontier:
             source_sate = frontier.pop(0)
@@ -195,8 +194,6 @@ class RipsFSMGenerator:
             finished_states.append(source_sate)
                
         #This language is prefix-closed, so every state is final.
-        
-        #print(f"ShortLex Machine on alphabet {restricted_alphabet} Completed: Graph with \n\t\t{len(states)} Vertices and \n\t\t{len(transition_list)} Edges.")
         return (EnhancedAutomaton(transition_list, [start_state], states))
     
     def geodesic_machine(self, restricted_alphabet=None) -> EnhancedAutomaton:
@@ -262,8 +259,6 @@ class RipsFSMGenerator:
             finished_states.append(source_sate)
 
         #This language is prefix-closed, so every state is final.
-
-        #print(f"Geodesic Machine on alphabet {restricted_alphabet} completed: Graph with \n\t\t{len(states)} Vertices and \n\t\t{len(transition_list)} Edges.")
         return (EnhancedAutomaton(transition_list, [start_state], states))
     
     def shortlex_suffix_machine(self) -> EnhancedAutomaton:

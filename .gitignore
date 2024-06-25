@@ -3,3 +3,7 @@ FSM_Generator.ipynb
 __pycache__
 .vscode
 tests.ipynb
+horosphere_production.py
+horosphere_graphs
+horosphere_vis.nb
+miscellaneous.py

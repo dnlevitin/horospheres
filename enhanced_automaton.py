@@ -184,23 +184,3 @@ class EnhancedAutomaton(Automaton):
 
         # Recall that transition.word_in returns a singleton list.
         return {transition.word_in[0] for transition in self.iter_transitions(state)}
-"""
-     
-    def transition_dict(self, state:FSMState) -> dict:
-        '''
-        Generate a dictionary describing the FSMTransitions of self that start at the provided state.
-        Keys to this dictionary are letters of the input alphabet, and values are instances of FSMtransition starting at state and labeled by the key value.
-        
-        :param state: a state in self.
-        :return: A dictionary whose keys are the letters of the input alphabet and whose values are the transitions from state labeled by those keys.
-        '''
-
-        if not self.is_deterministic:
-            raise ValueError('Not implemented for non-deterministic automata')
-            
-        TransitionDict = {}
-        for transition in self.iter_transitions(state):
-            TransitionDict[transition.word_in]=transition
-        return TransitionDict
-
-"""
